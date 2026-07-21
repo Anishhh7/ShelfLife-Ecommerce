@@ -7,7 +7,13 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
+  },
+  "jest": {
+    "maxWorkers": 1,
+    "verbose": true,
+    "silent": false
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -20,5 +26,10 @@
     "morgan": "^1.11.0",
     "nodemon": "^3.1.14",
     "validator": "^13.15.35"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.4.1",
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
   }
 }

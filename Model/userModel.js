@@ -40,7 +40,7 @@ const userSchema = new mongoose.Schema(
 
   role: {
    type: String,
-   enum: ["customer", "staff", "admin"],
+   enum: ["customer", "staff", "vendor", "admin"],
    default: "customer"
   },
 
@@ -51,6 +51,15 @@ const userSchema = new mongoose.Schema(
 
   passwordChangedAt: {
    type: Date
+  },
+
+  approved: {
+   type: Boolean,
+   default: false
+  },
+
+  storeName: {
+   type: String
   }
  },
 
