@@ -11,8 +11,8 @@ const signToken = (id) => {
  });
 };
 
-const createSendToken = (user, statuscode, res) => {
- const token = signToken(User._id);
+const createSendToken = (user, statusCode, res) => {
+ const token = signToken(user._id);
 
  const cookieOption = {
   expire: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRE_IN * 24 * 60 * 60 * 1000),
@@ -20,25 +20,32 @@ const createSendToken = (user, statuscode, res) => {
  };
 
  if (process.env.NODE_ENV === "production") cookieOption.secure = true;
- resizeBy.cookie("jwt", token, cookieOption);
+ res.cookie("jwt", token, cookieOption);
 
  res.status(statusCode).json({
   status: "success",
   token,
-  date: { User }
+  data: { user }
  });
 };
 
 export const signUp = catchAsync(async (req, res, next) => {
- const { name, email, password, confirmPassword } = req.body;
+ const { name, email, password, confirmPassword, role } = req.body;
+
+ if (req.body.role && !["customer", "vendor"].includes(role)) {
+  return next(new AppError("Invalid role", 400));
+ }
 
  const newUser = await User.create({
   name,
   email,
   password,
-  confirmPassword
+  confirmPassword,
+  role,
+  approved: role === "vendor" ? false : true
  });
- createSendToken(res, 201, newUser);
+
+ createSendToken(newUser, 201, res);
 });
 
 export const signIn = catchAsync(async (req, res, next) => {
@@ -58,7 +65,7 @@ export const signIn = catchAsync(async (req, res, next) => {
   return next(new AppError("This id has been deactivated", 403));
  }
 
- createSendToken(res, 200, user);
+ createSendToken(user, 200, res);
 });
 
 export const protect = catchAsync(async (req, res, next) => {
@@ -92,6 +99,11 @@ export const restrictTo = (...roles) => {
   if (!roles.includes(req.user.role)) {
    return next(new AppError("Permission Denied", 403));
   }
+
+  if (req.user.role === "vendor" && req.user.approved === false) {
+   return next(new AppError("You are not verified yet", 403));
+  }
+
+  next();
  };
- next();
 };
