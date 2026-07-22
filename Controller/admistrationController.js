@@ -2,7 +2,6 @@ import User from "../Model/userModel.js";
 import catchAsync from "../Utils/catchAsync.js";
 import AppError from "../Utils/appError.js";
 import sendResponse from "../Utils/sendResponse.js";
-import { truncates } from "bcryptjs";
 
 const filterObj = (obj, ...allowFields) => {
  const newObj = {};
