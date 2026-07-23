@@ -41,7 +41,11 @@ export const addToCart = catchAsync(async (req, res, next) => {
 
 export const updateCartItem = catchAsync(async (req, res, next) => {
   const { productId, quantity } = req.body;
-  let cart = await Cart.findOne({ user: req.params.id });
+  let cart = await Cart.findOne({ user: req.user.id });
+
+  if (!cart) {
+    return next(new AppError('Cart not found', 404));
+  }
 
   const item = cart.items.find(
     (item) => item.product.toString() === productId
@@ -50,9 +54,16 @@ export const updateCartItem = catchAsync(async (req, res, next) => {
   if (!item) {
     return next(new AppError('Product not found in cart', 404));
   }
-  items.quantity = quantity;
 
-  await product.save();
+  item.quantity = quantity;
+
+  if (quantity <= 0) {
+    return next(
+      new AppError('Quantity must be greater than zero', 400)
+    );
+  }
+
+  await cart.save();
 
   sendResponse(res, 200, cart, 'Cart updated sucessfully');
 });
@@ -80,5 +91,57 @@ export const removeCartItem = catchAsync(async (req, res, next) => {
     item.quantity -= quantity;
   }
   await cart.save();
-  sendResponse(res, 204, cart, 'Cart updated successfully');
+  sendResponse(res, 200, cart, 'Cart updated successfully');
+});
+
+export const getCart = catchAsync(async (req, res, next) => {
+  const cart = await Cart.findOne({ user: req.user.id }).populate(
+    'items.product'
+  );
+  if (!cart) {
+    return sendResponse(
+      res,
+      200,
+      {
+        items: [],
+        total: 0,
+      },
+      'Cart is empty'
+    );
+  }
+
+  const items = cart.items.map((item) => ({
+    product: item.product.name,
+    price: item.product.price,
+    quantity: item.quantity,
+    available: item.quantity <= item.product.stock,
+  }));
+
+  const total = cart.items.reduce((total, item) => {
+    const available = item.quantity <= item.product.stock;
+
+    if (available) {
+      total += item.quantity * item.product.price;
+    }
+    return total;
+  }, 0);
+
+  sendResponse(
+    res,
+    200,
+    { items, total },
+    'Cart fetched successfully'
+  );
+});
+
+export const clearCart = catchAsync(async (req, res, next) => {
+  const cart = await Cart.findOne({ user: req.user.id });
+
+  if (!cart) {
+    return next(new AppError('Cart not found', 404));
+  }
+
+  cart.items = [];
+  await cart.save();
+  sendResponse(res, 204, null, 'Cart clear successfully');
 });
