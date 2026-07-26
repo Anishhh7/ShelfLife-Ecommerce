@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
-//catch synchronous errors//
+// catch synchronous errors//
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception');
@@ -20,7 +20,8 @@ const DB = process.env.DATABASE.replace(
 
 mongoose
   .connect(DB)
-  .then(() => console.log('MongoDB Connected'));
+  .then(() => console.log('MongoDB Connected'))
+  .catch((err) => console.log(err));
 
 const port = process.env.PORT || 3000;
 

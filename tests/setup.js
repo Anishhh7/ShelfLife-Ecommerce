@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-dotenv.config({ path: './Config/config.env' });
+dotenv.config({ path: './Config/config.env',  quiet: true });
  
 import mongoose from 'mongoose';
  
