@@ -15,6 +15,12 @@ const orderSchema = new mongoose.Schema(
           ref: 'Product',
           required: true,
         },
+
+        vendor: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
         productName: {
           type: String,
           required: true,
@@ -28,6 +34,18 @@ const orderSchema = new mongoose.Schema(
           type: Number,
           min: [1, 'Quantity must have at least 1'],
           required: [true, 'Quantity can not be empty'],
+        },
+        itemStatus: {
+          type: String,
+          enum: [
+            'Pending',
+            'Confirmed',
+            'Packed',
+            'Shipped',
+            'Delivered',
+            'Cancelled',
+          ],
+          default: 'Pending',
         },
       },
     ],
@@ -49,18 +67,6 @@ const orderSchema = new mongoose.Schema(
     paymentStatus: {
       type: String,
       enum: ['Pending', 'Paid', 'Failed'],
-      default: 'Pending',
-    },
-    orderStatus: {
-      type: String,
-      enum: [
-        'Pending',
-        'Confirmed',
-        'Packed',
-        'Shipped',
-        'Delivered',
-        'Cancelled',
-      ],
       default: 'Pending',
     },
   },
