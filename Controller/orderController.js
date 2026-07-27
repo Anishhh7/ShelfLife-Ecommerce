@@ -5,6 +5,10 @@ import Order from '../Model/orderModel.js';
 import Cart from '../Model/cartModel.js';
 import Product from '../Model/productModel.js';
 import APIFeatures from '../Utils/apiFeatures.js';
+import sendEmail from '../Utils/sendEmail.js';
+import orderAdminEmail from '../Utils/emailTemplate/administrationEmail.js';
+import orderVendorEmail from '../Utils/emailTemplate/vendorEmail.js';
+import orderCustomerEmail from '../Utils/emailTemplate/customerEmail.js';
 
 const filterObj = (obj, ...allowFields) => {
   const newObj = {};
@@ -74,6 +78,45 @@ export const placeOrder = catchAsync(async (req, res, next) => {
 
   cart.items = [];
   await cart.save();
+
+  try {
+    const groupByVendor = order.items.reduce((groups, item) => {
+      const vendorId = item.vendor.toString();
+      if (!groups[vendorId]) groups[vendorId] = [];
+      return groups;
+    }, {});
+
+    const vendorIds = Object.keys(groupByVendor);
+    const vendors = await User.find({ _id: { $in: vendorIds } });
+
+    await sendEmail(
+      orderCustomerEmail(
+        order,
+        req.user.email,
+        req.user.name,
+      )
+    );
+
+    await Promise.all(
+      vendors.map((vendor) =>
+        sendEmail(
+          orderVendorEmail(
+            order,
+            vendor,
+            req.user.name,
+            req.user.email,
+            req.user.phone,
+            groupByVendor[vendor.id]
+          )
+        )
+      )
+    );
+    await sendEmail(
+      orderAdminEmail(order, req.user.name, req.user.email)
+    );
+  } catch (err) {
+    console.error('Order email notification failed:', err.message);
+  }
 
   sendResponse(res, 201, order, 'Order placed successfully');
 });
