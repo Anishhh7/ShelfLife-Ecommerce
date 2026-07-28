@@ -70,8 +70,8 @@ const userSchema = new mongoose.Schema(
       type: String,
     },
     passwordChangedAt: Date,
-    passwordResetToken: String,
-    passwordResetExpires: Date,
+    passwordResetOTP: String,
+    passwordResetOTPExpires: Date,
   },
 
   {
@@ -107,18 +107,18 @@ userSchema.methods.checkPasswordChanged = function (JWTTimesstamp) {
   return false;
 };
 
-userSchema.methods.createPasswordResetToken = function () {
-  const resetToken = crypto.randomBytes(32).toString('hex');
+userSchema.methods.createPasswordResetOTP = function () {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-  this.passwordResetToken = crypto
+  this.passwordResetOTP = crypto
     .createHash('sha256')
-    .update(resetToken)
+    .update(otp)
     .digest('hex');
 
-  console.log({ resetToken }, 'Hashed:', this.passwordResetToken);
+  console.log({ otp }, 'Hashed:', this.passwordResetOTP);
 
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
-  return resetToken;
+  return otp;
 };
 
 const User =

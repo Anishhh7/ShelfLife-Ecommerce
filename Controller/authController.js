@@ -140,31 +140,30 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
     return next(new AppError('Can not found any email address', 404));
   }
 
-  const resetToken = user.createPasswordResetToken();
+  const otp = user.createPasswordResetOTP();
   await user.save({ validateBeforeSave: false });
 
-  const resetURL = `${req.protocol}: //${req.get('host')}/api/v1/users/resetPassword/${resetToken}`;
-
-  const message = `Forgot your password? submit a PATCH request with your new password and passwordConfirm to: ${resetURL}. \nIf you didn't forget your password, please ignore this email. `;
+  const message = `Your password reset OTP is ${otp}. It is valid for 10 minutes. If you didn't request this, please ignore this email.`;
 
   try {
     await sendEmail({
       email: user.email,
-      subject: 'Your Password reset token valid for 10 minutes.',
+      subject: 'Your Password reset OTP valid for 10 minutes.',
       message,
     });
     res.status(200).json({
       status: 'success',
-      message: 'Token has sent to email address',
+      message: 'OTP has been sent to your email address',
     });
   } catch (err) {
     console.error('📬 ACTUAL EMAIL UTILITY ERROR:', err);
-    user.passwordResetToken = undefined;
-    user.passwordResetExpires = undefined;
+    user.passwordResetOTP = undefined;
+    user.passwordResetOTPExpires = undefined;
     await user.save({ validateBeforeSave: false });
     return next(
       new AppError(
-        'There was an error sending this email. Try again later!!'
+        'There was an error sending the OTP. Try again later!!',
+        500
       )
     );
   }
@@ -173,21 +172,22 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 export const resetPassword = catchAsync(async (req, res, next) => {
   const hashedToken = crypto
     .createHash('sha256')
-    .update(req.params.tokeb)
+    .update(req.body.otp)
     .digest('hex');
 
-  const useer = await User.findOne({
-    passwordResetToken: hashedToken,
+  const user = await User.findOne({
+    email: req.user.email,
+    passwordResetOTP: hashedOTP,
     passwordResetExpires: { $gt: Date.now() },
   });
 
   if (!user) {
-    return next(new AppError('Token is Invalid', 404));
+    return next(new AppError('OTP is Invalid or has expired', 400));
   }
   user.password = req.body?.password;
   user.passwordConfirm = req.body?.passwordConfirm;
-  user.passwordResetToken = undefined;
-  user.passwordResetExpires = undefined;
+  user.passwordResetOTP = undefined;
+  user.passwordResetOTPExpires = undefined;
 
   await user.save();
 
