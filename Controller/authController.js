@@ -4,34 +4,110 @@ import catchAsync from '../Utils/catchAsync.js';
 import AppError from '../Utils/appError.js';
 import User from '../Model/userModel.js';
 import { promisify } from 'util';
-import sendResponse from '../Utils/sendResponse.js';
+import { ref } from 'process';
 
-const signToken = (id) => {
+const signAccessToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
 };
 
-const createSendToken = (user, statusCode, res) => {
-  const token = signToken(user._id);
+const signRefreshToken = (id, family) => {
+  return jwt.sign({ id, family }, process.env.JWT_REFRESH_SECRET, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+  });
+};
 
-  const cookieOption = {
-    expire: new Date(
+const hashToken = (token) => {
+  return crypto.createHash('sha256').update(token).digest('hex');
+};
+const createSendToken = async (user, statusCode, res) => {
+  const accessToken = signAccessToken(user._id);
+
+  const family = crypto.randomUUID();
+  const refreshToken = signRefreshToken(user._id, family);
+
+  user.refreshTokenHash = hashToken(refreshToken);
+
+  user.refreshFamily = family;
+  user.refreshTokenExpires = new Date(
+    Date.now() +
+      process.env.JWT_REFRESH_EXPIRES_IN.replace('d', '') *
+        24 *
+        60 *
+        60 *
+        1000
+  );
+
+  await user.save({ validateBeforeSave: false });
+
+  const accessCookieOptions = {
+    expires: new Date(
       Date.now() +
         process.env.JWT_COOKIE_EXPIRE_IN * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
   };
 
-  if (process.env.NODE_ENV === 'production')
-    cookieOption.secure = true;
-  res.cookie('jwt', token, cookieOption);
+  const refreshCookieOptions = {
+    expires: user.refreshTokenExpires,
+    httpOnly: true,
+    path: '/api/v1/users/refresh',
+  };
+
+  if (process.env.NODE_ENV === 'production') {
+    accessCookieOptions.secure = true;
+    refreshCookieOptions.secure = true;
+  }
+
+  res.cookie('jwt', accessToken, accessCookieOptions);
+  res.cookie('refreshToken', refreshToken, refreshCookieOptions);
 
   res.status(statusCode).json({
     status: 'success',
-    token,
+    token: accessToken,
     data: { user },
   });
+};
+
+const createSendTokenRotated = async (user, family, res) => {
+  const accessToken = signAccessToken(user._id);
+  const refreshToken = signRefreshToken(user._id, family);
+
+  user.refreshTokenHash = hashToken(refreshToken);
+  user.refreshTokenFamily = family;
+  user.refreshTokenExpires = new Date(
+    Date.now() +
+      process.env.JWT_REFRESH_EXPIRES_IN.replace('d', '') *
+        24 *
+        60 *
+        60 *
+        1000
+  );
+
+  await user.save({ validateBeforeSave: false });
+
+  const accessCookieOptions = {
+    expires: new Date(
+      Date.now() +
+        process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    httpOnly: true,
+  };
+  const refreshCookieOptions = {
+    expires: user.refreshTokenExpires,
+    httpOnly: true,
+    path: '/api/v1/users/refresh',
+  };
+  if (process.env.NODE_ENV === 'production') {
+    accessCookieOptions.secure = true;
+    refreshCookieOptions.secure = true;
+  }
+
+  res.cookie('jwt', accessToken, accessCookieOptions);
+  res.cookie('refreshToken', refreshToken, refreshCookieOptions);
+
+  res.status(200).json({ status: 'success', token: accessToken });
 };
 
 export const signUp = catchAsync(async (req, res, next) => {
@@ -50,7 +126,7 @@ export const signUp = catchAsync(async (req, res, next) => {
     approved: role === 'vendor' ? false : true,
   });
 
-  createSendToken(newUser, 201, res);
+  await createSendToken(newUser, 201, res);
 });
 
 export const signIn = catchAsync(async (req, res, next) => {
@@ -75,7 +151,7 @@ export const signIn = catchAsync(async (req, res, next) => {
     return next(new AppError('This id has been deactivated', 403));
   }
 
-  createSendToken(user, 200, res);
+  await createSendToken(user, 200, res);
 });
 
 export const protect = catchAsync(async (req, res, next) => {
@@ -146,7 +222,7 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
   const message = `Your password reset OTP is ${otp}. It is valid for 10 minutes. If you didn't request this, please ignore this email.`;
 
   try {
-    await sendEmail({
+    await sendemail({
       email: user.email,
       subject: 'Your Password reset OTP valid for 10 minutes.',
       message,
@@ -170,7 +246,7 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 });
 
 export const resetPassword = catchAsync(async (req, res, next) => {
-  const hashedToken = crypto
+  const hashedOTP = crypto
     .createHash('sha256')
     .update(req.body.otp)
     .digest('hex');
@@ -191,14 +267,14 @@ export const resetPassword = catchAsync(async (req, res, next) => {
 
   await user.save();
 
-  createSendToken(user, 200, res);
+  await createSendToken(user, 200, res);
 });
 
 export const updatePassword = catchAsync(async (req, res, next) => {
   const user = await User.findById(req.user.id).select('+password');
 
   if (
-    !(await user.checkCorrecPassword(
+    !(await user.checkCorrectPassword(
       req.body.passwordCurrent,
       user.password
     ))
@@ -209,9 +285,95 @@ export const updatePassword = catchAsync(async (req, res, next) => {
   }
 
   user.password = req.body.password;
-  user.passwordConfir = req.body.passwordConfirm;
+  user.passwordConfirm = req.body.passwordConfirm;
 
   await user.save();
 
-  createSendToken(user, 200, res);
+  await createSendToken(user, 200, res);
+});
+
+export const refresh = catchAsync(async (req, res, next) => {
+  const rawToken = req.cookies?.refreshToken;
+
+  if (!rawToken) {
+    return next(
+      new AppError('You are not logged in. Please log in.', 401)
+    );
+  }
+
+  let decoded;
+  try {
+    decoded = await promisify(jwt.verify)(
+      rawToken,
+      process.env.JWT_REFRESH_SECRET
+    );
+  } catch (err) {
+    return next(
+      new AppError(
+        'Invalid or expired refresh token. Please log in again.',
+        401
+      )
+    );
+  }
+
+  const user = await User.findById(decoded.id).select(
+    '+refreshTokenHash'
+  );
+
+  if (!user || !user.refreshTokenHash) {
+    return next(
+      new AppError('Invalid session. Please log in again.', 401)
+    );
+  }
+
+  const incomingHash = hashToken(rawToken);
+
+  if (
+    incomingHash !== user.refreshTokenHash ||
+    decoded.family !== user.refreshTokenFamily
+  ) {
+    user.refreshTokenHash = undefined;
+    user.refreshTokenFamily = undefined;
+    user.refreshTokenExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    res.clearCookie('refreshToken', {
+      path: '/api/v1/users/refresh',
+    });
+
+    return next(
+      new AppError('Session invalid. Please log in again.', 401)
+    );
+  }
+
+  if (
+    user.refreshTokenExpires &&
+    user.refreshTokenExpires < Date.now()
+  ) {
+    return next(
+      new AppError('Session expired. Please log in again.', 401)
+    );
+  }
+
+  await createSendTokenRotated(user, decoded.family, res);
+});
+
+export const logout = catchAsync(async (req, res, next) => {
+  if (req.user) {
+    req.user.refreshTokenHash = undefined;
+    req.user.refreshTokenFamily = undefined;
+    req.user.refreshTokenExpires = undefined;
+    await req.user.save({ validateBeforeSave: false });
+  }
+
+  res.cookie('jwt', 'loggedout', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+  });
+
+  res.clearCookie('refreshToken', { path: '/api/v1/users/refresh' });
+
+  res.status(200).json({
+    status: 'success',
+  });
 });

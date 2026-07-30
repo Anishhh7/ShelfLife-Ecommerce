@@ -5,16 +5,14 @@ import express from 'express';
 
 const router = express.Router();
 
-router.route('/signup').post(AuthController.signUp);
-router.route('/signin').post(AuthController.signIn);
-
-router.route('/forgot-password').post(AuthController.forgotPassword);
-router
-  .route('/resetPassword/:tokem')
-  .patch(AuthController.resetPassword);
+router.post('/signup', AuthController.signUp);
+router.post('/signin', AuthController.signIn);
+router.post('/forgot-password', AuthController.forgotPassword);
+router.patch('/resetPassword', AuthController.resetPassword);
+router.post('/refresh', AuthController.refresh);
+router.post('/logout', AuthController.protect, AuthController.logout);
 
 router.use(AuthController.protect);
-
 
 router
   .route('/updateMyPassword')
@@ -38,12 +36,11 @@ router
     AdministrationController.getPendingVendors
   );
 
-router
-  .route('/:id/approve')
-  .patch(
-    AuthController.restrictTo(...permission.staff.create),
-    AdministrationController.approvedVendors
-  );
+router.patch(
+  '/:id/approve',
+  AuthController.restrictTo(...permission.staff.create),
+  AdministrationController.approvedVendors
+);
 
 router
   .route('/:id')
