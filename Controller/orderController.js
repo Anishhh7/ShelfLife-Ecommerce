@@ -121,6 +121,7 @@ export const placeOrder = catchAsync(async (req, res, next) => {
   sendResponse(res, 201, order, 'Order placed successfully');
 });
 
+
 export const getMyOrders = catchAsync(async (req, res, next) => {
   const order = await Order.find({ user: req.user.id }).populate(
     'items.product'
