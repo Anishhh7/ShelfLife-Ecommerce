@@ -22,6 +22,13 @@ export default {
   },
   dashboard: {
     vendorStats: ['vendor'],
-    adminStats:['admin']
+    adminStats: ['admin'],
+  },
+  review: {
+    adminReadAll: ['admin'],
+    vendorReadAll: ['vendor'],
+    userReadAll: ['user'],
+    create:['user'],
+    delete:['admin']
   },
 };
