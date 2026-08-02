@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
       maxlength: [25, 'User Name can not be longer than 25'],
-      minlength: [3, 'User name must be at least 3 characters long'],
+      minlength: [3, 'User name must have at least 3 characters long'],
       required: [true, 'Please provide a user name'],
     },
 
@@ -69,6 +69,21 @@ const userSchema = new mongoose.Schema(
     storeName: {
       type: String,
     },
+
+    location: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point',
+    },
+
+    coordinates: {
+      type: [Number],
+      required: true,
+    },
+
+    address: String,
+    description: String,
+
     passwordChangedAt: Date,
     passwordResetOTP: String,
     passwordResetOTPExpires: Date,
