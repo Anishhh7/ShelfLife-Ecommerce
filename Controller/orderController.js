@@ -9,6 +9,7 @@ import sendEmail from '../Utils/sendEmail.js';
 import orderAdminEmail from '../Utils/emailTemplate/administrationEmail.js';
 import orderVendorEmail from '../Utils/emailTemplate/vendorEmail.js';
 import orderCustomerEmail from '../Utils/emailTemplate/customerEmail.js';
+import mongoose from 'mongoose';
 
 const filterObj = (obj, ...allowFields) => {
   const newObj = {};
@@ -61,66 +62,78 @@ export const placeOrder = catchAsync(async (req, res, next) => {
     quantity: item.quantity,
   }));
 
-  const order = await Order.create({
-    user: req.user.id,
-    items,
-    totalAmount,
-    shippingAddress: req.body.shippingAddress,
-    paymentMethod: req.body.paymentMethod,
-  });
-
-  await Promise.all(
-    cart.items.map(async (item) => {
-      item.product.stock -= item.quantity;
-      await item.product.save();
-    })
-  );
-
-  cart.items = [];
-  await cart.save();
+  const session = await mongoose.startSession();
 
   try {
-    const groupByVendor = order.items.reduce((groups, item) => {
-      const vendorId = item.vendor.toString();
-      if (!groups[vendorId]) groups[vendorId] = [];
-      return groups;
-    }, {});
+    session.startTransaction();
 
-    const vendorIds = Object.keys(groupByVendor);
-    const vendors = await User.find({ _id: { $in: vendorIds } });
-
-    await sendEmail(
-      orderCustomerEmail(
-        order,
-        req.user.email,
-        req.user.name,
-      )
+    const [order] = await Order.create(
+      [
+        {
+          user: req.user.id,
+          items,
+          totalAmount,
+          shippingAddress: req.body.shippingAddress,
+          paymentMethod: req.body.paymentMethod,
+        },
+      ],
+      { session }
     );
 
     await Promise.all(
-      vendors.map((vendor) =>
-        sendEmail(
-          orderVendorEmail(
-            order,
-            vendor,
-            req.user.name,
-            req.user.email,
-            req.user.phone,
-            groupByVendor[vendor.id]
+      cart.items.map(async (item) => {
+        item.product.stock -= item.quantity;
+        await item.product.save({ session });
+      })
+    );
+
+    cart.items = [];
+    await cart.save({ session });
+    await session.commitTransaction();
+
+    try {
+      const groupByVendor = order.items.reduce((groups, item) => {
+        const vendorId = item.vendor.toString();
+        if (!groups[vendorId]) groups[vendorId] = [];
+        return groups;
+      }, {});
+
+      const vendorIds = Object.keys(groupByVendor);
+      const vendors = await User.find({ _id: { $in: vendorIds } });
+
+      await sendEmail(
+        orderCustomerEmail(order, req.user.email, req.user.name)
+      );
+
+      await Promise.all(
+        vendors.map((vendor) =>
+          sendEmail(
+            orderVendorEmail(
+              order,
+              vendor,
+              req.user.name,
+              req.user.email,
+              req.user.phone,
+              groupByVendor[vendor.id]
+            )
           )
         )
-      )
-    );
-    await sendEmail(
-      orderAdminEmail(order, req.user.name, req.user.email)
-    );
+      );
+      await sendEmail(
+        orderAdminEmail(order, req.user.name, req.user.email)
+      );
+    } catch (err) {
+      console.error('Order email notification failed:', err.message);
+    }
+
+    sendResponse(res, 201, order, 'Order placed successfully');
   } catch (err) {
-    console.error('Order email notification failed:', err.message);
+    await session.abortTransaction();
+    return next(err);
+  } finally {
+    session.endSession();
   }
-
-  sendResponse(res, 201, order, 'Order placed successfully');
 });
-
 
 export const getMyOrders = catchAsync(async (req, res, next) => {
   const order = await Order.find({ user: req.user.id }).populate(
@@ -225,4 +238,58 @@ export const getAllOrders = catchAsync(async (req, res, next) => {
     page: features.page,
     totalPages,
   });
+});
+
+export const cancelOrder = catchAsync(async (req, res, next) => {
+  const checkOrder = await Order.findById(req.params.orderId);
+  if (!checkOrder) {
+    return next(new AppError('Order is not found with this id', 404));
+  }
+
+  const canCancel = checkOrder.items.every((item) => {
+    item.itemStatus === 'Pending' || item.itemStatus === 'Confirmed';
+  });
+
+  if (!canCancel) {
+    return next(
+      new AppError(
+        'Your order cannot be cancelled because it is already being processed or delivered.',
+        400
+      )
+    );
+  }
+
+  let session;
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    const order = await Order.findById(req.params.orderId)
+      .populate('items.product')
+      .session(session);
+
+    order.items.forEach((item) => {
+      item.itemStatus = 'Cancelled';
+    });
+
+    await Promise.all(
+      order.items.map(async (item) => {
+        item.product.stock += item.quantity;
+        await item.product.save({ session });
+      })
+    );
+
+    await order.save({ session });
+
+    await session.commitTransaction();
+
+    sendResponse(res, 200, order, 'Order has cancelled sucessfully');
+  } catch (err) {
+    await session.abortTransaction();
+    return next(err);
+  } finally {
+    if (session) {
+      session.endSession();
+    }
+  }
 });
