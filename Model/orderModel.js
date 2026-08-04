@@ -47,6 +47,31 @@ const orderSchema = new mongoose.Schema(
           ],
           default: 'Pending',
         },
+
+        statusHistory: [
+          {
+            status: {
+              type: String,
+              enum: [
+                'Pending',
+                'Confirmed',
+                'Packed',
+                'Shipped',
+                'Out for Delivery',
+                'Delivered',
+                'Cancelled',
+              ],
+            },
+            updatedBy: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: 'User',
+            },
+            updatedAt: {
+              type: Date,
+              default: Date.now,
+            },
+          },
+        ],
       },
     ],
 

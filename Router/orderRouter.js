@@ -7,26 +7,43 @@ const router = express.Router();
 
 router.use(AuthController.protect);
 
-router.route('/').post(OrderController.placeOrder);
+router.post('/', OrderController.placeOrder);
 
-router.route('/my-orders').get(
+router.get(
+  '/my-orders',
   AuthController.restrictTo(...permission.order.myOrders),
   OrderController.getMyOrders
 );
 
-router.route('/vendor-orders').get(
+router.get(
+  '/vendor-orders',
   AuthController.restrictTo(...permission.order.vendorOrder),
   OrderController.getVendorOrders
 );
 
-router.route('/all').get(
+router.get(
+  '/all',
   AuthController.restrictTo(...permission.order.readAll),
   OrderController.getAllOrders
 );
 
-router.route('/:orderId/items/:itemId').patch(
-  AuthController.restrictTo(...permission.order.updateStatus),
-  OrderController.updateItemStatus
+router.patch(
+  '/:orderId/cancel',
+  AuthController.restrictTo(...permission.order.cancel),
+  OrderController.cancelOrder
 );
+
+router.patch(
+  '/:orderId/items/:itemId/vendor-status',
+  AuthController.restrictTo(...permission.order.updateVendorStatus),
+  OrderController.updateVendorItemStatus
+);
+router.patch(
+  '/:orderId/items/:itemId/status',
+  AuthController.restrictTo(...permission.order.updateAdminStatus),
+  OrderController.updateAdminItemStatus
+);
+
+router.get('/:id/tracking', OrderController.getOrderTracking);
 
 export default router;
