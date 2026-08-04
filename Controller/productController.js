@@ -19,7 +19,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
 export const getAllProduct = catchAsync(async (req, res, next) => {
   const features = new APIFeatures(Product.find(), req.query)
     .filter()
-    .search()
+    .search(['name', 'description'])
     .sort()
     .pagination();
 

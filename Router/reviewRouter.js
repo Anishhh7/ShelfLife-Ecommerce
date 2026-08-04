@@ -3,16 +3,13 @@ import permission from '../Config/permission.js';
 import * as AuthController from '../Controller/authController.js';
 import * as ReviewController from '../Controller/reviewController.js';
 
-const router = express.Router({mergeParams:true});
+const router = express.Router({ mergeParams: true });
 
 router.use(AuthController.protect);
 
 router
   .route('/')
-  .get(
-    AuthController.restrictTo(...permission.review.adminReadAll),
-    ReviewController.getAllReviews
-  )
+  .get(ReviewController.getAllReviews)
   .post(
     AuthController.restrictTo(...permission.review.create),
     ReviewController.createReview

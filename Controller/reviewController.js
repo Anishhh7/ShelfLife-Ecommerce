@@ -3,6 +3,8 @@ import AppError from '../Utils/appError.js';
 import Review from '../Model/reviewModel.js';
 import sendResponse from '../Utils/sendResponse.js';
 import Product from '../Model/productModel.js';
+import Order from '../Model/orderModel.js';
+import mongoose from 'mongoose';
 
 export const createReview = catchAsync(async (req, res, next) => {
   const { productId, review: reviewText, rating } = req.body;
@@ -13,12 +15,31 @@ export const createReview = catchAsync(async (req, res, next) => {
     return next(new AppError('Can not find the product', 404));
   }
 
+  const hasPurchased = await Order.findOne({
+    user: req.user.id,
+    items: {
+      $elemMatch: {
+        product: productId,
+        itemsStatus: 'Delivered',
+      },
+    },
+  });
+
+  if (!hasPurchased) {
+    return next(
+      new AppError(
+        'You can only review products you have purchased and received',
+        403
+      )
+    );
+  }
+
   const existingReview = await Review.findOne({
     product: productId,
     reviewUser: req.user.id,
   });
 
-  if (existingReview) { 
+  if (existingReview) {
     return next(
       new AppError('You have already reviewed this product.', 400)
     );
@@ -41,12 +62,31 @@ export const createReview = catchAsync(async (req, res, next) => {
 });
 
 export const getAllReviews = catchAsync(async (req, res, next) => {
-  const review = await Review.find()
+  const { productId } = req.params;
+
+  const reviews = await Review.find({
+    product: req.params.productId,
+  })
     .select('rating review product productVendor reviewUser')
     .populate('product', 'productName')
     .populate('productVendor', 'name')
-    .populate('reviewUser', 'name'); 
-  sendResponse(res, 200, review);
+    .populate('reviewUser', 'name');
+
+  const stats = await Review.aggregate([
+    { $match: { $product: new mongoose.Types.ObjectId(productId) } },
+    {
+      $group: {
+        _id: '$product',
+        averageRating: { $avg: '$rating' },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ]);
+  sendResponse(res, 200, {
+    averageRating: stats[0]?.averageRating || 0,
+    totalReviews: stats[0]?.totalReviews || 0,
+    items: reviews,
+  });
 });
 
 export const getAllVendorReviews = catchAsync(
