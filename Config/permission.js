@@ -17,18 +17,22 @@ export default {
   order: {
     myOrders: ['customer'],
     vendorOrder: ['vendor'],
-    updateStatus: ['vendor'],
+    updateVendorStatus: ['vendor'],
+    updateAdminStatus: ['admin'],
     readAll: ['admin'],
+    cancel:['customer']
   },
   dashboard: {
     vendorStats: ['vendor'],
     adminStats: ['admin'],
+    customerStats:['customer']
   },
   review: {
     adminReadAll: ['admin'],
     vendorReadAll: ['vendor'],
     userReadAll: ['user'],
     create:['user'],
-    delete:['admin']
+    delete: ['admin'],
+
   },
 };
