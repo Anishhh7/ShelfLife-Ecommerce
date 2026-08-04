@@ -7,18 +7,22 @@ const router = express.Router();
 
 router.use(AuthController.protect);
 
-router
-  .route('/vendor-stats')
-  .get(
-    AuthController.restrictTo(...permission.dashboard.vendorStats),
-    DashboardController.vendorDashboard
-  );
-
-router
-  .route('/admin-stats')
-  .get(
-    AuthController.restrictTo(...permission.dashboard.adminStats),
-    DashboardController.adminDashboard
+router.get(
+  '/vendor-stats',
+  AuthController.restrictTo(...permission.dashboard.vendorStats),
+  DashboardController.vendorDashboard
 );
-  
+
+router.get(
+  '/admin-stats',
+  AuthController.restrictTo(...permission.dashboard.adminStats),
+  DashboardController.adminDashboard
+);
+
+router.get(
+  '/my-stats',
+  AuthController.restrictTo(...permission.dashboard.customerStats),
+  DashboardController.customerDashboard
+);
+
 export default router;

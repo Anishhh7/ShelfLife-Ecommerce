@@ -155,3 +155,34 @@ export const adminDashboard = catchAsync(async (req, res, next) => {
     topSellingProducts: topSellingProduct,
   });
 });
+
+export const customerDashboard = catchAsync(
+  async (req, res, next) => {
+    const userId = req.user.id;
+    const [totalOrder, toShip, toDelivered, toCancelled] =
+      await Promise.all([
+        Order.countDocuments({ user: userId }),
+        Order.countDocuments({
+          user: userId,
+          'items.itemStatus': {
+            $in: ['Pending', 'Confirmed', 'Packed', 'Shipped'],
+          },
+        }),
+        Order.countDocuments({
+          user: userId,
+          'items.itemStatus': 'Delivered',
+        }),
+        Order.countDocuments({
+          user: userId,
+          'items.itemStatus': 'Cancelled',
+        }),
+      ]);
+
+    sendResponse(res, 200, {
+      totalOrder,
+      toShip,
+      toDelivered,
+      toCancelled,
+    });
+  }
+);
