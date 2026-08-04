@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception');
-  console.error(err.name, err.message);
+  console.error(err.name, err.message, err.stack);
   process.exit(1);
 });
 
@@ -30,7 +30,7 @@ const server = app.listen(port, () => {
 
   //Catch unhandled Promise Rejections//
 
-  process.on('Unhandled Rejection', (err) => {
+  process.on('UnhandledRejection', (err) => {
     console.error('Unhandled Rejection !!!');
     console.error(err.name, err.message);
 
