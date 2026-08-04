@@ -1,7 +1,13 @@
-const sendResponse = (res, statusCode, data, message, meta) => {
-  const status = statusCode < 400 ? 'success' : 'fail';
+const sendResponse = (res, statusCode, data=null, message='', meta=null) => {
+  const isSuccess = statusCode >= 200 && statusCode<400;
 
-  res.status(statusCode).json({ status, ...meta, message, data });
+  const responseBody = {
+    status: isSuccess ? 'success' : 'fail',
+    ...(message && { message }),
+    ...(meta && { meta }),
+    data,
+  }
+  return res.status(statusCode).json(responseBody);
 };
 
 export default sendResponse;

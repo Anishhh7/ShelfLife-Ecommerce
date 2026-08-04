@@ -7,11 +7,20 @@ class APIFeatures {
 
   filter() {
     const queryObj = { ...this.queryString };
-    const excludedFields = ["page", "sort", "limit", "fields", "search"];
+    const excludedFields = [
+      'page',
+      'sort',
+      'limit',
+      'fields',
+      'search',
+    ];
     excludedFields.forEach((el) => delete queryObj[el]);
 
     let queryStr = JSON.stringify(queryObj);
-    queryStr = queryStr.replace(/\b(gt|gte|lte|lt)\b/g, (match) => `$${match}`);
+    queryStr = queryStr.replace(
+      /\b(gt|gte|lte|lt)\b/g,
+      (match) => `$${match}`
+    );
 
     const parsed = JSON.parse(queryStr);
     this.filterConditions = { ...this.filterConditions, ...parsed };
@@ -19,37 +28,34 @@ class APIFeatures {
     return this;
   }
 
-  search() {
-    if (this.queryString.search) {
+  search(fields = []) {
+    if (this.queryString.search && fields.length > 0) {
       const searchCondition = {
-        $or: [
-          {
-            name: {
-              $regex: this.queryString.search,
-              $options: "i"
-            }
+        $or: fields.map((field) => ({
+          [field]: {
+            $regex: this.queryString.search,
+            $options: 'i',
           },
-          {
-            title: {
-              $regex: this.queryString.search,
-              $options: "i"
-            }
-          },
-          
-        ]
+        })),
       };
-      this.filterConditions = { ...this.filterConditions, ...searchCondition };
+
+      this.filterConditions = {
+        ...this.filterConditions,
+        ...searchCondition,
+      };
+
       this.query = this.query.find(searchCondition);
     }
+
     return this;
   }
 
   sort() {
     if (this.queryString.sort) {
-      const sortBy = this.queryString.sort.split(",").join(" ");
+      const sortBy = this.queryString.sort.split(',').join(' ');
       this.query = this.query.sort(sortBy);
     } else {
-      this.query = this.query.sort("-createdAt");
+      this.query = this.query.sort('-createdAt');
     }
     return this;
   }
