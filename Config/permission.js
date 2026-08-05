@@ -30,9 +30,13 @@ export default {
   review: {
     adminReadAll: ['admin'],
     vendorReadAll: ['vendor'],
-    userReadAll: ['user'],
-    create:['user'],
+    userReadAll: ['customer'],
+    create:['customer'],
     delete: ['admin'],
-
   },
+  wishlist: {
+    create:['customer'],
+    readAll:['customer'],
+    remove:['customer']
+  }
 };
