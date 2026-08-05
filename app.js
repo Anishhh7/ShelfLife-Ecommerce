@@ -16,6 +16,7 @@ import orderRouter from './Router/orderRouter.js';
 import dashboardRouter from './Router/dashboardRouter.js';
 import reviewRouter from './Router/reviewRouter.js';
 import wishlistRouter from './Router/wishlistRouter.js';
+import addressBookRouter from './Router/addressBookRouter.js'
 
 const app = express();
 app.set('query parser', 'extended');
@@ -50,6 +51,7 @@ app.use('/api/v1/orders', orderRouter);
 app.use('/api/v1/dashboards', dashboardRouter);
 app.use('/api/v1/reviews', reviewRouter);
 app.use('/api/v1/wishlists', wishlistRouter);
+app.use('/api/v1/addresses', addressBookRouter);
 
 app.all('/{*path}', (req, res, next) => {
   next(
