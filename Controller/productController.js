@@ -3,11 +3,14 @@ import AppError from '../Utils/appError.js';
 import sendResponse from '../Utils/sendResponse.js';
 import APIFeatures from '../Utils/apiFeatures.js';
 import Product from '../Model/productModel.js';
+import Category from '../Model/categoryModel.js';
 
 export const createProduct = catchAsync(async (req, res, next) => {
-  if (!req.user.id) {
-    return next(new AppError('you can not create a id', 404));
+  const category = await Category.findById(req.body.category);
+  if (!category) {
+    return next(new AppError('Inavalid Category', 404));
   }
+
   const product = await Product.create({
     ...req.body,
     vendor: req.user.id,
@@ -21,16 +24,22 @@ export const getAllProduct = catchAsync(async (req, res, next) => {
     .filter()
     .search(['name', 'description'])
     .sort()
+    .limitFields()
     .pagination();
 
-  const product = await features.query;
+  const products = await features.query
+    .populate({
+      path: 'vendor',
+      select: 'storeName location address ',
+    })
+    .populate({ path: 'category', select: 'name coverImage' });
   const total = await Product.countDocuments(
     features.filterConditions
   );
   const totalPages = Math.ceil(total / features.limit);
 
-  sendResponse(res, 200, product, undefined, {
-    results: product.length,
+  sendResponse(res, 200, products, undefined, {
+    results: products.length,
     total,
     page: features.page,
     totalPages,
@@ -38,7 +47,9 @@ export const getAllProduct = catchAsync(async (req, res, next) => {
 });
 
 export const getProductById = catchAsync(async (req, res, next) => {
-  const product = await Product.findById(req.params.id);
+  const product = await Product.findById(req.params.id).populate(
+    'category'
+  );
 
   if (!product) {
     return next(new AppError('No product found with this ID', 404));
@@ -61,6 +72,13 @@ export const updateProduct = catchAsync(async (req, res, next) => {
         404
       )
     );
+  }
+
+  if (req.body.category) {
+    const category = await Category.findById(req.body.category);
+    if (!category) {
+      return next(new AppError('Inavalid Category', 400));
+    }
   }
 
   Object.assign(product, req.body);
