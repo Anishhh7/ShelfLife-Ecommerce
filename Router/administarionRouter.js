@@ -2,48 +2,53 @@ import express from 'express';
 import permission from '../Config/permission.js';
 import * as AuthController from '../Controller/authController.js';
 import * as AdministrationController from '../Controller/admistrationController.js';
+import { validate } from '../Utils/validate.js';
+import * as AuthValidation from '../Validation/administrationValidate.js';
 
 const router = express.Router();
+router.use(AuthController.protect);
 
 router.get(
   '/',
-  AuthController.restrictTo(...permission.staff.create),
-  AdministrationController.getAllAdministartion
+  AuthController.restrictTo(...permission.staff.readAll),
+  AdministrationController.getAllAdministration
 );
 
 router.post(
   '/create-staff',
   AuthController.restrictTo(...permission.staff.create),
-  AdministrationController.createAdministartion
+  validate(AuthValidation.createStaffSchema),
+  AdministrationController.createAdministraation
 );
 
 router
   .route('/pending-vendors')
   .get(
-    AuthController.restrictTo(...permission.staff.create),
+    AuthController.restrictTo(...permission.staff.getvendor),
     AdministrationController.getPendingVendors
   );
 
 router.patch(
   '/:id/approve',
-  AuthController.restrictTo(...permission.staff.create),
+  AuthController.restrictTo(...permission.staff.vendorApprove),
   AdministrationController.approvedVendors
 );
 
 router
   .route('/:id')
   .get(
-    AuthController.restrictTo(...permission.staff.create),
-    AdministrationController.getAdministartionById
+    AuthController.restrictTo(...permission.staff.readAll),
+    AdministrationController.getAdministrationById
   )
 
   .patch(
-    AuthController.restrictTo(...permission.staff.create),
-    AdministrationController.updateAdministartion
+    AuthController.restrictTo(...permission.staff.update),
+    validate(AuthValidation.updateStaffSchema),
+    AdministrationController.updateAdministration
   )
   .delete(
-    AuthController.restrictTo(...permission.staff.create),
-    AdministrationController.deleteAdministartion
+    AuthController.restrictTo(...permission.staff.delete),
+    AdministrationController.deleteAdministration
   );
 
 export default router;

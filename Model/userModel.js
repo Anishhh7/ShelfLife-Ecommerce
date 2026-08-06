@@ -1,62 +1,47 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
-import validator from 'validator';
 import bcrypt from 'bcryptjs';
 
-const isVendor = function () {
-  return this.role === 'vendor';
-};
 
 const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       trim: true,
-      maxlength: [25, 'User Name can not be longer than 25'],
-      minlength: [
-        3,
-        'User name must have at least 3 characters long',
-      ],
-      required: [true, 'Please provide a user name'],
+      required:true
     },
 
     email: {
       type: String,
       unique: true,
-      validate: [validator.isEmail, 'Invalid Email Id'],
       lowercase: true,
       trim: true,
-      required: [true, 'Please provide a email Id'],
+      required:true
     },
 
     phone: {
       type: String,
       unique: true,
       trim: true,
-      required: [true, 'Please provide your mobile number'],
+      required:true
     },
 
     password: {
       type: String,
-      minlength: [8, 'Password must be at least 8 charater long'],
-      required: true,
       select: false,
+      required:true
     },
 
     passwordConfirm: {
       type: String,
-      validate: {
-        validator: function (el) {
-          return el === this.password;
-        },
-        message: 'Passwords do not match',
-      },
+      required:true
     },
 
     role: {
       type: String,
       enum: ['customer', 'staff', 'vendor', 'admin'],
       default: 'customer',
+      required:true
     },
 
     active: {
@@ -75,41 +60,24 @@ const userSchema = new mongoose.Schema(
 
     storeName: {
       type: String,
-      required: [
-        isVendor,
-        'Store name is required for vendor accounts.',
-      ],
     },
 
     location: {
       type: String,
       enum: ['Point'],
       default: 'Point',
-      required: [
-        isVendor,
-        'Location type is required for vendor accounts',
-      ],
     },
 
     coordinates: {
       type: [Number],
-      required: [
-        isVendor,
-        'Coordinates is required for vendor accounts.',
-      ],
     },
 
     address: {
       type: String,
-      required: [
-        isVendor,
-        'Address is required for vendor accounts.',
-      ],
     },
-    
+
     description: String,
 
-    passwordChangedAt: Date,
     passwordResetOTP: String,
     passwordResetOTPExpires: Date,
     refreshTokenExpires: Date,
@@ -161,9 +129,11 @@ userSchema.methods.createPasswordResetOTP = function () {
     .update(otp)
     .digest('hex');
 
+  this.passwordResetOTPExpires =
+    Date.now() + 10 * 60 * 1000;
+
   console.log({ otp }, 'Hashed:', this.passwordResetOTP);
 
-  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
   return otp;
 };
 
