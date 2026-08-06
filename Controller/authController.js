@@ -5,6 +5,7 @@ import AppError from '../Utils/appError.js';
 import User from '../Model/userModel.js';
 import { promisify } from 'util';
 import { ref } from 'process';
+import sendEmail from '../Utils/sendEmail.js';
 
 const signAccessToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -44,7 +45,7 @@ const createSendToken = async (user, statusCode, res) => {
   const accessCookieOptions = {
     expires: new Date(
       Date.now() +
-        process.env.JWT_COOKIE_EXPIRE_IN * 24 * 60 * 60 * 1000
+        process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
   };
@@ -111,7 +112,7 @@ const createSendTokenRotated = async (user, family, res) => {
 };
 
 export const signUp = catchAsync(async (req, res, next) => {
-  const { name, email, password, confirmPassword, role } = req.body;
+  const { name, email, phone, password, passwordConfirm, role } = req.body;
 
   if (req.body.role && !['customer', 'vendor'].includes(role)) {
     return next(new AppError('Invalid role', 400));
@@ -120,8 +121,9 @@ export const signUp = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name,
     email,
+    phone,
     password,
-    confirmPassword,
+    passwordConfirm,
     role,
     approved: role === 'vendor' ? false : true,
   });
@@ -213,7 +215,7 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
   });
 
   if (!user) {
-    return next(new AppError('Can not found any email address', 404));
+    return next(new AppError('No account found with that email address', 404));
   }
 
   const otp = user.createPasswordResetOTP();
@@ -222,7 +224,7 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
   const message = `Your password reset OTP is ${otp}. It is valid for 10 minutes. If you didn't request this, please ignore this email.`;
 
   try {
-    await sendemail({
+    await sendEmail({
       email: user.email,
       subject: 'Your Password reset OTP valid for 10 minutes.',
       message,
