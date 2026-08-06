@@ -9,12 +9,13 @@ import hpp from 'hpp';
 import globalErrorHandler from './Controller/errorController.js';
 import AppError from './Utils/appError.js';
 import authRouter from './Router/userRouter.js';
+import adminstrationRouter from './Router/administarionRouter.js';
 import productRouter from './Router/productRouter.js';
 import orderRouter from './Router/orderRouter.js';
 import dashboardRouter from './Router/dashboardRouter.js';
 import reviewRouter from './Router/reviewRouter.js';
 import wishlistRouter from './Router/wishlistRouter.js';
-import addressBookRouter from './Router/addressBookRouter.js'
+import addressBookRouter from './Router/addressBookRouter.js';
 
 const app = express();
 app.set('query parser', 'extended');
@@ -25,9 +26,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-
 app.use(cookieParser());
-
 
 const limiter = rateLimit({
   max: 100,
@@ -41,6 +40,7 @@ app.use('/api', limiter);
 app.use(hpp());
 
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/admin', adminstrationRouter);
 app.use('/api/v1/products', productRouter);
 app.use('/api/v1/orders', orderRouter);
 app.use('/api/v1/dashboards', dashboardRouter);

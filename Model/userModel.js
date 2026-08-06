@@ -3,13 +3,20 @@ import mongoose from 'mongoose';
 import validator from 'validator';
 import bcrypt from 'bcryptjs';
 
+const isVendor = function () {
+  return this.role === 'vendor';
+};
+
 const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       trim: true,
       maxlength: [25, 'User Name can not be longer than 25'],
-      minlength: [3, 'User name must have at least 3 characters long'],
+      minlength: [
+        3,
+        'User name must have at least 3 characters long',
+      ],
       required: [true, 'Please provide a user name'],
     },
 
@@ -68,20 +75,38 @@ const userSchema = new mongoose.Schema(
 
     storeName: {
       type: String,
+      required: [
+        isVendor,
+        'Store name is required for vendor accounts.',
+      ],
     },
 
     location: {
       type: String,
       enum: ['Point'],
       default: 'Point',
+      required: [
+        isVendor,
+        'Location type is required for vendor accounts',
+      ],
     },
 
     coordinates: {
       type: [Number],
-      required: true,
+      required: [
+        isVendor,
+        'Coordinates is required for vendor accounts.',
+      ],
     },
 
-    address: String,
+    address: {
+      type: String,
+      required: [
+        isVendor,
+        'Address is required for vendor accounts.',
+      ],
+    },
+    
     description: String,
 
     passwordChangedAt: Date,
