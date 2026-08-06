@@ -18,7 +18,7 @@ class APIFeatures {
 
     let queryStr = JSON.stringify(queryObj);
     queryStr = queryStr.replace(
-      /\b(gt|gte|lte|lt)\b/g,
+      /\b(gte|gt|lte|lt|ne|in|nin)\b/g,
       (match) => `$${match}`
     );
 
@@ -30,10 +30,15 @@ class APIFeatures {
 
   search(fields = []) {
     if (this.queryString.search && fields.length > 0) {
+      const escapedSearch = this.queryString.search.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        '\\$&'
+      );
+
       const searchCondition = {
         $or: fields.map((field) => ({
           [field]: {
-            $regex: this.queryString.search,
+            $regex: escapedSearch,
             $options: 'i',
           },
         })),
@@ -59,6 +64,17 @@ class APIFeatures {
     }
     return this;
   }
+
+  limitFields() {
+    if (this.queryString.fields) {
+      const fields = this.queryString.fields.split(',').join(' ');
+      this.query = this.query.select(fields);
+    } else {
+      this.query = this.query.select('-__v');
+    }
+    return this;
+  }
+
   pagination() {
     this.page = Math.max(1, Number(this.queryString.page) || 1);
     this.limit = Math.min(
