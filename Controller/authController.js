@@ -112,21 +112,13 @@ const createSendTokenRotated = async (user, family, res) => {
 };
 
 export const signUp = catchAsync(async (req, res, next) => {
-  const { name, email, phone, password, passwordConfirm, role } = req.body;
+  req.body.approved = req.body.role !== 'vendor';
+  const userData = {
+    ...req.body,
+    approve: req.body.role !== 'vendor',
+  };
 
-  if (req.body.role && !['customer', 'vendor'].includes(role)) {
-    return next(new AppError('Invalid role', 400));
-  }
-
-  const newUser = await User.create({
-    name,
-    email,
-    phone,
-    password,
-    passwordConfirm,
-    role,
-    approved: role === 'vendor' ? false : true,
-  });
+  const newUser = await User.create(userData);
 
   await createSendToken(newUser, 201, res);
 });
@@ -134,23 +126,19 @@ export const signUp = catchAsync(async (req, res, next) => {
 export const signIn = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return next(
-      new AppError('Please provide email and password', 400)
-    );
-  }
-
   const user = await User.findOne({ email }).select('+password');
-
-  if (
-    !user ||
-    !(await user.checkCorrectPassword(password, user.password))
-  ) {
-    return next(new AppError('Incorrect email and password', 401));
-  }
 
   if (user.active === false) {
     return next(new AppError('This id has been deactivated', 403));
+  }
+
+  const isCorrect = await User.checkCorrectPassword(
+    password,
+    user.password
+  );
+
+  if (!isCorrect) {
+    return next(new AppError('Incorrect email or password', 401));
   }
 
   await createSendToken(user, 200, res);
@@ -210,12 +198,14 @@ export const restrictTo = (...roles) => {
 };
 
 export const forgotPassword = catchAsync(async (req, res, next) => {
-  const user = await User.findOne({
-    email: req.body?.email,
-  });
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
 
   if (!user) {
-    return next(new AppError('No account found with that email address', 404));
+    return next(
+      new AppError('No account found with that email address', 404)
+    );
   }
 
   const otp = user.createPasswordResetOTP();
@@ -237,6 +227,7 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
     console.error('📬 ACTUAL EMAIL UTILITY ERROR:', err);
     user.passwordResetOTP = undefined;
     user.passwordResetOTPExpires = undefined;
+
     await user.save({ validateBeforeSave: false });
     return next(
       new AppError(
@@ -248,22 +239,23 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 });
 
 export const resetPassword = catchAsync(async (req, res, next) => {
+  const { otp, password, passwordConfirm } = req.body;
   const hashedOTP = crypto
     .createHash('sha256')
-    .update(req.body.otp)
+    .update(otp)
     .digest('hex');
 
   const user = await User.findOne({
     email: req.user.email,
     passwordResetOTP: hashedOTP,
-    passwordResetExpires: { $gt: Date.now() },
+    passwordResetOTPExpires: { $gt: Date.now() },
   });
 
   if (!user) {
     return next(new AppError('OTP is Invalid or has expired', 400));
   }
-  user.password = req.body?.password;
-  user.passwordConfirm = req.body?.passwordConfirm;
+  user.password =password
+  user.passwordConfirm = passwordConfirm
   user.passwordResetOTP = undefined;
   user.passwordResetOTPExpires = undefined;
 
@@ -273,21 +265,22 @@ export const resetPassword = catchAsync(async (req, res, next) => {
 });
 
 export const updatePassword = catchAsync(async (req, res, next) => {
+  const { passwordCurrent, password, passwordConfirm } = req.body;
+
   const user = await User.findById(req.user.id).select('+password');
 
-  if (
-    !(await user.checkCorrectPassword(
-      req.body.passwordCurrent,
-      user.password
-    ))
-  ) {
-    return next(
-      new AppError('Password is not matched with User!!', 401)
-    );
+  if (!user) {
+    return next(new AppError('No user found with this ID', 404));
   }
 
-  user.password = req.body.password;
-  user.passwordConfirm = req.body.passwordConfirm;
+  if (
+    !(await user.checkCorrectPassword(passwordCurrent, user.password))
+  ) {
+    return next(new AppError('Current password is incorrect', 401));
+  }
+
+  user.password = password;
+  user.passwordConfirm = passwordConfirm;
 
   await user.save();
 
