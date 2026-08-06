@@ -11,9 +11,7 @@ const handleDuplicateFieldDB = (err) => {
   if (err.keyValue) {
     actualValue = Object.values(err.keyValue)[0];
   } else if (err.errResponse && err.errResponse.keyValue) {
-    actualValue = Object.values(
-      err.errResponse.keyValue
-    )[0];
+    actualValue = Object.values(err.errResponse.keyValue)[0];
   }
 
   const message = `Duplicate field value: '${actualValue}'. Please use another value.`;
@@ -21,21 +19,25 @@ const handleDuplicateFieldDB = (err) => {
 };
 
 const handleValidatorErrorDB = (err) => {
-  const errors = Object.values(err.errors).map(
-    (el) => el.message
-  );
+  const errors = Object.values(err.errors).map((el) => el.message);
   const message = `Invalid input data. ${errors.join('. ')}`;
   return new AppError(message, 400);
+};
+
+const handleZodError = (err) => {
+  const errors = err.issues.map((issue) => ({
+    field: issue.path.join('.'),
+    message: issue.message,
+  }));
+
+  return new AppError('Validation failed', 400, errors);
 };
 
 const handleJWTError = () =>
   new AppError('Invalid token. Please log in again.', 401);
 
 const handleJWTExpiredError = () =>
-  new AppError(
-    'Your session has expired. Please log in again.',
-    401
-  );
+  new AppError('Your session has expired. Please log in again.', 401);
 
 const sendErrorDev = (err, res) => {
   res.status(err.statusCode).json({
@@ -51,9 +53,9 @@ const sendErrorProd = (err, res) => {
     return res.status(err.statusCode).json({
       status: err.status,
       message: err.message,
+      ...(err.errors && { errors: err.errors }),
     });
   }
-
   // Unknown/programming error
 
   res.status(500).json({
@@ -84,14 +86,12 @@ export default (err, req, res, next) => {
     error.statusCode = err.statusCode;
     error.status = err.status;
 
-    if (error.name === 'CastError')
-      error = handleCastError(error);
-    if (error.code === 11000)
-      error = handleDuplicateFieldDB(error);
+    if (error.name === 'CastError') error = handleCastError(error);
+    if (error.code === 11000) error = handleDuplicateFieldDB(error);
     if (error.name === 'ValidationError')
       error = handleValidatorErrorDB(error);
-    if (error.name === 'JsonWebTokenError')
-      error = handleJWTError();
+    if (err instanceof ZodError) error = handleZodError(err);
+    if (error.name === 'JsonWebTokenError') error = handleJWTError();
     if (error.name === 'TokenExpiredError')
       error = handleJWTExpiredError();
 
