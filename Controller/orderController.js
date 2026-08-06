@@ -12,14 +12,7 @@ import orderCustomerEmail from '../Utils/emailTemplate/customerEmail.js';
 import mongoose from 'mongoose';
 import orderDeliveredEmail from '../Utils/emailTemplate/DeliveredEmail.js';
 import orderCancelledEmail from '../Utils/emailTemplate/cancelOrderEmail.js';
-
-const filterObj = (obj, ...allowFields) => {
-  const newObj = {};
-  Object.keys(obj).forEach((el) => {
-    if (allowFields.includes(el)) newObj[el] = obj[el];
-  });
-  return newObj;
-};
+import Product from '../Model/productModel.js';
 
 export const placeOrder = catchAsync(async (req, res, next) => {
   const cart = await Cart.findOne({ user: req.user.id }).populate(
@@ -51,6 +44,17 @@ export const placeOrder = catchAsync(async (req, res, next) => {
     );
   }
 
+  const address = await AddressBook.findOne({
+    _id: req.body.addressId,
+    user: req.user.id,
+  });
+
+  if (!address) {
+    return next(
+      new AppError('Address not found or does not belong to you', 404)
+    );
+  }
+
   const totalAmount = cart.items.reduce((total, item) => {
     total += item.quantity * item.product.price;
     return total;
@@ -65,17 +69,23 @@ export const placeOrder = catchAsync(async (req, res, next) => {
   }));
 
   const session = await mongoose.startSession();
-
+  let order;
   try {
     session.startTransaction();
 
-    const [order] = await Order.create(
+    const [newOrder] = await Order.create(
       [
         {
           user: req.user.id,
           items,
           totalAmount,
-          shippingAddress: req.body.shippingAddress,
+          shippingAddress: {
+            fullName: address.fullName,
+            phone: address.phone,
+            address: address.address,
+            city: address.city,
+            postalCode: address.postalCode,
+          },
           paymentMethod: req.body.paymentMethod,
         },
       ],
@@ -83,59 +93,65 @@ export const placeOrder = catchAsync(async (req, res, next) => {
     );
 
     await Promise.all(
-      cart.items.map(async (item) => {
-        item.product.stock -= item.quantity;
-        await item.product.save({ session });
-      })
+      cart.items.map((item) =>
+        Product.findByIdAndUpdate(
+          item.product.id,
+          { $inc: { stock: -item.quantity } },
+          { session }
+        )
+      )
     );
 
     cart.items = [];
     await cart.save({ session });
     await session.commitTransaction();
-
-    try {
-      const groupByVendor = order.items.reduce((groups, item) => {
-        const vendorId = item.vendor.toString();
-        if (!groups[vendorId]) groups[vendorId] = [];
-        groups[vendorId].push(item);
-        return groups;
-      }, {});
-
-      const vendorIds = Object.keys(groupByVendor);
-      const vendors = await User.find({ _id: { $in: vendorIds } });
-
-      await sendEmail(
-        orderCustomerEmail(order, req.user.email, req.user.name)
-      );
-
-      await Promise.all(
-        vendors.map((vendor) =>
-          sendEmail(
-            orderVendorEmail(
-              order,
-              vendor,
-              req.user.name,
-              req.user.email,
-              req.user.phone,
-              groupByVendor[vendor.id]
-            )
-          )
-        )
-      );
-      await sendEmail(
-        orderAdminEmail(order, req.user.name, req.user.email)
-      );
-    } catch (err) {
-      console.error('Order email notification failed:', err.message);
-    }
-
-    sendResponse(res, 201, order, 'Order placed successfully');
   } catch (err) {
     await session.abortTransaction();
     return next(err);
   } finally {
     session.endSession();
   }
+
+  try {
+    const groupByVendor = order.items.reduce((groups, item) => {
+      const vendorId = item.vendor.toString();
+      if (!groups[vendorId]) groups[vendorId] = [];
+      groups[vendorId].push(item);
+      return groups;
+    }, {});
+
+    const vendorIds = Object.keys(groupByVendor);
+    const vendors = await User.find({ _id: { $in: vendorIds } });
+
+    await sendEmail(
+      orderCustomerEmail(order, req.user.email, req.user.name)
+    );
+
+    await Promise.all([
+      sendEmail(
+        orderCustomerEmail(order, req.user.name, req.user.email)
+      ),
+      sendEmail(
+        orderAdminEmail(order, req.user.name, req.user.email)
+      ),
+      ...vendors.map((vendor) =>
+        sendEmail(
+          orderVendorEmail(
+            order,
+            vendor,
+            req.user.name,
+            req.user.email,
+            req.user.phone,
+            groupByVendor[vendor.id]
+          )
+        )
+      ),
+    ]);
+  } catch (err) {
+    console.error('Order email notification failed:', err.message);
+  }
+
+  sendResponse(res, 201, order, 'Order placed successfully');
 });
 
 export const getMyOrders = catchAsync(async (req, res, next) => {
@@ -148,6 +164,7 @@ export const getMyOrders = catchAsync(async (req, res, next) => {
     .filter()
     .search(['items.productName'])
     .sort()
+    .limitFields()
     .pagination();
 
   const orders = await filters.query;
@@ -170,6 +187,7 @@ export const getVendorOrders = catchAsync(async (req, res, next) => {
   )
     .filter()
     .sort()
+    .limitFields()
     .pagination();
 
   const order = await filters.query;
@@ -204,7 +222,11 @@ export const getVendorOrders = catchAsync(async (req, res, next) => {
 
 export const updateVendorItemStatus = catchAsync(
   async (req, res, next) => {
-    const filterBody = filterObj(req.body, 'itemStatus');
+    const { itemStatus } = req.body;
+
+    if (!itemStatus) {
+      return next(new AppError('Please provide status', 400));
+    }
 
     const order = await Order.findById(req.params.orderId).populate(
       'user'
@@ -214,13 +236,9 @@ export const updateVendorItemStatus = catchAsync(
       return next(new AppError('No order found with that ID', 404));
     }
 
-    const item = order.items.find(
-      (item) =>
-        item._id.toString() === req.params.itemId &&
-        item.vendor.toString() === req.user.id
-    );
+    const item = order.items.id(req.params.itemId);
 
-    if (!item) {
+    if (!item || item.vendor.toString() !== req.user.id) {
       return next(
         new AppError('Item not found or you are not authorized', 404)
       );
@@ -230,24 +248,17 @@ export const updateVendorItemStatus = catchAsync(
       Confirmed: 'Packed',
     };
 
-    if (!filterBody.itemStatus) {
-      return next(new AppError('Please provide itemStatus.', 400));
-    }
-
-    if (
-      allowedTransactions[item.itemStatus] !== filterBody.itemStatus
-    ) {
+    if (!allowedTransactions[item.itemStatus] !== itemStatus) {
       return next(
-        new AppError('Invalid order status transition.', 400)
+        new AppError('Invalid order status transition', 400)
       );
     }
 
-    item.itemStatus = filterBody.itemStatus;
-
+    item.itemStatus = itemStatus;
     item.statusHistory.push({
-      status: filterBody.itemStatus,
+      status: itemStatus,
       updatedAt: new Date(),
-      updatedBy: req.user.id,
+      updatedBy: req.used._id,
     });
 
     await order.save();
@@ -263,24 +274,33 @@ export const updateVendorItemStatus = catchAsync(
 
 export const updateAdminItemStatus = catchAsync(
   async (req, res, next) => {
-    if (
-      req.body.itemStatus &&
-      ![
-        'Pending',
-        'Confirmed',
-        'Packed',
-        'Shipped',
-        'Delivered',
-        'Cancelled',
-      ].includes(req.body.itemStatus)
-    ) {
-      return next(new AppError('Invalid status', 400));
-    }
-    const filterBody = filterObj(req.body, 'itemStatus');
+    const ALLOWED_ADMIN_STATUSES = [
+      'Pending',
+      'Confirmed',
+      'Packed',
+      'Shipped',
+      'Delivered',
+      'Cancelled',
+    ];
+    const { itemStatus } = req.body;
 
-    const order = await Order.findById(req.params.orderId).populate(
-      'user'
-    );
+    if (!itemStatus) {
+      return next(new AppError('Please provide itemStatus.', 400));
+    }
+
+    if (!ALLOWED_ADMIN_STATUSES.includes(itemStatus)) {
+      return next(
+        new AppError(
+          `Invalid status. Allowed values: ${ALLOWED_ADMIN_STATUSES.join(', ')}`,
+          400
+        )
+      );
+    }
+
+    const query = await Order.findById(req.params.orderId);
+    if (itemStatus === 'Delivered') query.populate('user');
+
+    const order = await query;
 
     if (!order) {
       return next(new AppError('No order found with that ID', 404));
@@ -289,10 +309,10 @@ export const updateAdminItemStatus = catchAsync(
     const item = order.items.id(req.params.itemId);
 
     if (!item) {
-      return next(new AppError('Item not found', 404));
+      return next(new AppError('Item not found in this order', 404));
     }
 
-    if (item.itemStatus === filterBody.itemStatus) {
+    if (item.itemStatus === itemStatus) {
       return next(
         new AppError(
           `Item is already marked as '${item.itemStatus}'`,
@@ -301,16 +321,16 @@ export const updateAdminItemStatus = catchAsync(
       );
     }
 
-    item.itemStatus = filterBody.itemStatus;
+    item.itemStatus = itemStatus;
     item.statusHistory.push({
-      status: filterBody.itemStatus,
+      status: itemStatus,
       updatedAt: new Date(),
       updatedBy: req.user.id,
     });
     await order.save();
 
     try {
-      if (filterBody.itemStatus === 'Delivered') {
+      if (item.itemStatus === 'Delivered' && order.user?.email) {
         await sendEmail(
           orderDeliveredEmail(
             order,
@@ -322,7 +342,12 @@ export const updateAdminItemStatus = catchAsync(
     } catch (err) {
       console.error('Order email notification failed:', err.message);
     }
-    sendResponse(res, 200, order);
+    sendResponse(
+      res,
+      200,
+      order,
+      'Items status updated successfully'
+    );
   }
 );
 
@@ -331,6 +356,7 @@ export const getAllOrders = catchAsync(async (req, res, next) => {
     .filter()
     .search()
     .sort()
+    .limitFields()
     .pagination();
 
   const order = await features.query;
