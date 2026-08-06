@@ -4,6 +4,8 @@ export default {
     readAll: ['admin'],
     update: ['admin'],
     delete: ['admin'],
+    vendorApprove: ['admin'],
+    getvendor: ['admin'],
   },
   vendor: {
     readAll: ['admin'],
@@ -45,5 +47,10 @@ export default {
     update: ['customer'],
     delete: ['customer'],
     setDefault: ['customer'],
+  },
+  category: {
+    create: ['admin'],
+    update: ['admin'],
+    delete: ['admin'],
   },
 };

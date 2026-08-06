@@ -16,6 +16,7 @@ import dashboardRouter from './Router/dashboardRouter.js';
 import reviewRouter from './Router/reviewRouter.js';
 import wishlistRouter from './Router/wishlistRouter.js';
 import addressBookRouter from './Router/addressBookRouter.js';
+import categoryRouter from './Router/categoryRouter.js';
 
 const app = express();
 app.set('query parser', 'extended');
@@ -47,6 +48,7 @@ app.use('/api/v1/dashboards', dashboardRouter);
 app.use('/api/v1/reviews', reviewRouter);
 app.use('/api/v1/wishlists', wishlistRouter);
 app.use('/api/v1/addresses', addressBookRouter);
+app.use('/api/v1/categories', categoryRouter);
 
 app.all('/{*path}', (req, res, next) => {
   next(
