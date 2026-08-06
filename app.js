@@ -3,10 +3,8 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 dotenv.config({ path: './Config/config.env', quiet: true });
 import cookieParser from 'cookie-parser';
-import ExpressMongoSanitize from 'express-mongo-sanitize';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import xss from 'xss-clean';
 import hpp from 'hpp';
 import globalErrorHandler from './Controller/errorController.js';
 import AppError from './Utils/appError.js';
@@ -20,17 +18,16 @@ import addressBookRouter from './Router/addressBookRouter.js'
 
 const app = express();
 app.set('query parser', 'extended');
-
+app.use(express.json());
 app.use(helmet());
 
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-app.use(express.json());
+
 app.use(cookieParser());
 
-app.use(ExpressMongoSanitize());
 
 const limiter = rateLimit({
   max: 100,
@@ -40,8 +37,6 @@ const limiter = rateLimit({
 });
 
 app.use('/api', limiter);
-
-app.use(xss());
 
 app.use(hpp());
 
