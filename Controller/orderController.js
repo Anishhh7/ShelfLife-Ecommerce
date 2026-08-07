@@ -224,10 +224,6 @@ export const updateVendorItemStatus = catchAsync(
   async (req, res, next) => {
     const { itemStatus } = req.body;
 
-    if (!itemStatus) {
-      return next(new AppError('Please provide status', 400));
-    }
-
     const order = await Order.findById(req.params.orderId).populate(
       'user'
     );
@@ -248,7 +244,7 @@ export const updateVendorItemStatus = catchAsync(
       Confirmed: 'Packed',
     };
 
-    if (!allowedTransactions[item.itemStatus] !== itemStatus) {
+    if (allowedTransactions[item.itemStatus] !== itemStatus) {
       return next(
         new AppError('Invalid order status transition', 400)
       );
@@ -274,28 +270,7 @@ export const updateVendorItemStatus = catchAsync(
 
 export const updateAdminItemStatus = catchAsync(
   async (req, res, next) => {
-    const ALLOWED_ADMIN_STATUSES = [
-      'Pending',
-      'Confirmed',
-      'Packed',
-      'Shipped',
-      'Delivered',
-      'Cancelled',
-    ];
     const { itemStatus } = req.body;
-
-    if (!itemStatus) {
-      return next(new AppError('Please provide itemStatus.', 400));
-    }
-
-    if (!ALLOWED_ADMIN_STATUSES.includes(itemStatus)) {
-      return next(
-        new AppError(
-          `Invalid status. Allowed values: ${ALLOWED_ADMIN_STATUSES.join(', ')}`,
-          400
-        )
-      );
-    }
 
     const query = await Order.findById(req.params.orderId);
     if (itemStatus === 'Delivered') query.populate('user');
@@ -404,6 +379,10 @@ export const cancelOrder = catchAsync(async (req, res, next) => {
     const order = await Order.findById(req.params.orderId)
       .populate('items.product')
       .session(session);
+
+    if (!order) {
+      return next(new AppError('Order not found', 404));
+    }
 
     order.items.forEach((item) => {
       item.itemStatus = 'Cancelled';
