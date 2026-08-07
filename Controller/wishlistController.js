@@ -30,23 +30,22 @@ export const addToWishlist = catchAsync(async (req, res, next) => {
       res,
       201,
       wishlist,
-     `${product.name} has been successfully added to your wishlist`
+      `${product.name} has been successfully added to your wishlist`
     );
   }
 
   const item = wishlist.items.find(
-    (item) => item.product.toString() === req.body.productId
+    (item) => item.product._id.toString() === req.body.productId
   );
   if (item) {
     return next(
       new AppError('This is already in your wishlist', 409)
     );
   }
-  if (!item) {
-    wishlist.items.push({
-      product: req.body.productId,
-    });
-  }
+
+  wishlist.items.push({
+    product: req.body.productId,
+  });
 
   await wishlist.save();
 
