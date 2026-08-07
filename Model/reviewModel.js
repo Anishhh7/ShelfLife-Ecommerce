@@ -4,13 +4,10 @@ const reviewSchema = new mongoose.Schema(
   {
     review: {
       type: String,
-      maxlength: [500, 'A review can not be longer than 200 words.'],
     },
     rating: {
       type: Number,
       required: true,
-      min: [1, 'A rating should be equal to 1'],
-      max: [5, 'A rating should equal or less than 5'],
     },
     product: {
       type: mongoose.Schema.Types.ObjectId,

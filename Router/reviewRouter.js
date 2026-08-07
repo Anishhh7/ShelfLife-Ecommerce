@@ -2,6 +2,8 @@ import express from 'express';
 import permission from '../Config/permission.js';
 import * as AuthController from '../Controller/authController.js';
 import * as ReviewController from '../Controller/reviewController.js';
+import { validate } from '../Utils/validate.js';
+import * as ReviewValidation from '../Validation/reviewValidation.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -12,6 +14,7 @@ router
   .get(ReviewController.getAllReviews)
   .post(
     AuthController.restrictTo(...permission.review.create),
+    validate(ReviewValidation.createReviewSchema),
     ReviewController.createReview
   );
 

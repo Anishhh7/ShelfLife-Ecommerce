@@ -7,7 +7,8 @@ import Order from '../Model/orderModel.js';
 import mongoose from 'mongoose';
 
 export const createReview = catchAsync(async (req, res, next) => {
-  const { productId, review: reviewText, rating } = req.body;
+  const { review: reviewText, rating } = req.body;
+  const { productId } = req.params;
 
   const product = await Product.findById(productId);
 
@@ -20,7 +21,7 @@ export const createReview = catchAsync(async (req, res, next) => {
     items: {
       $elemMatch: {
         product: productId,
-        itemsStatus: 'Delivered',
+        itemStatus: 'Delivered',
       },
     },
   });
