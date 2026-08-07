@@ -30,7 +30,14 @@ export const getCategoryById = catchAsync(async (req, res, next) => {
 });
 
 export const updateCategory = catchAsync(async (req, res, next) => {
-  const category = await Category.findByIdAndUpdate(req.params.id);
+  const category = await Category.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    {
+      returnDocument: 'after',
+      runValidators: true,
+    }
+  );
 
   if (!category) {
     return next(new AppError('No category found with this ID', 404));
@@ -39,5 +46,11 @@ export const updateCategory = catchAsync(async (req, res, next) => {
   sendResponse(res, 200, category, 'Category updated successfully');
 });
 
+export const deleteCategory = catchAsync(async (req, res, next) => {
+  const category = await Category.findByIdAndDelete(req.params.id);
+  if (!category) {
+    return next(new AppError('No category found with this ID', 404));
+  }
 
-export const deleteCategory = catchAsync
+  sendResponse(res, 204, null, 'Category deleted successfully');
+});
