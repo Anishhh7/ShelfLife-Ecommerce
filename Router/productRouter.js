@@ -3,6 +3,8 @@ import permission from '../Config/permission.js';
 import * as AuthController from '../Controller/authController.js';
 import * as ProductController from '../Controller/productController.js';
 import reviewRouter from './reviewRouter.js';
+import { validate } from '../Utils/validate.js';
+import * as ProductValidation from '../Validation/productValidation.js';
 
 const router = express.Router();
 
@@ -16,17 +18,19 @@ router.use(AuthController.protect);
 router.post(
   '/',
   AuthController.restrictTo(...permission.product.create),
+  validate(ProductValidation.createProductSchema),
   ProductController.createProduct
 );
 
 router
   .route('/:id')
   .patch(
-    AuthController.restrictTo(...permission.product.create),
+    AuthController.restrictTo(...permission.product.update),
+    validate(ProductValidation.updateProductSchema),
     ProductController.updateProduct
   )
   .delete(
-    AuthController.restrictTo(...permission.product.create),
+    AuthController.restrictTo(...permission.product.delete),
     ProductController.deleteProduct
   );
 

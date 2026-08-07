@@ -6,7 +6,7 @@ import Product from '../Model/productModel.js';
 import Category from '../Model/categoryModel.js';
 
 export const createProduct = catchAsync(async (req, res, next) => {
-  const category = await Category.findById(req.body.category);
+  const category = await Category.findById(req.body.categoryId);
   if (!category) {
     return next(new AppError('Inavalid Category', 404));
   }
@@ -62,7 +62,7 @@ export const updateProduct = catchAsync(async (req, res, next) => {
   const product = await Product.findById(req.params.id);
 
   if (!product) {
-    return next(new AppError('No product found with this ID', 403));
+    return next(new AppError('No product found with this ID', 404));
   }
 
   if (product.vendor.toString() !== req.user.id) {
@@ -74,8 +74,8 @@ export const updateProduct = catchAsync(async (req, res, next) => {
     );
   }
 
-  if (req.body.category) {
-    const category = await Category.findById(req.body.category);
+  if (req.body.categoryId) {
+    const category = await Category.findById(req.body.categoryId);
     if (!category) {
       return next(new AppError('Inavalid Category', 400));
     }

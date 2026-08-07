@@ -4,26 +4,22 @@ const productSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Please provide your product name'],
+      required: true, 
       trim: true,
     },
 
     description: {
       type: String,
-      maxlength: [
-        250,
-        'Description can not be longer that 250 characters',
-      ],
     },
 
     price: {
       type: Number,
-      required: [true, 'A product must have a price'],
+      required: true, 
     },
 
     stock: {
       type: Number,
-      required: [true, 'A product stock must be provided'],
+      required: true,
     },
 
     images: {
