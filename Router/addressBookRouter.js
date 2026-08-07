@@ -2,6 +2,8 @@ import express from 'express';
 import permission from '../Config/permission.js';
 import * as AuthController from '../Controller/authController.js';
 import * as AddressBookController from '../Controller/addressBookController.js';
+import { validate } from '../Utils/validate.js';
+import * as AddressBookValidation from '../Validation/addressBookValidation.js';
 
 const router = express.Router();
 
@@ -15,6 +17,7 @@ router
   )
   .post(
     AuthController.restrictTo(...permission.address.create),
+    validate(AddressBookValidation.createAddressBookSchema),
     AddressBookController.createAddress
   );
 
@@ -22,6 +25,7 @@ router
   .route('/:id')
   .patch(
     AuthController.restrictTo(...permission.address.update),
+    validate(AddressBookValidation.updateAddressBookSchema),
     AddressBookController.updateAddress
   )
   .delete(

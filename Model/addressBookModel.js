@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import validator from 'validator';
 
 const addressSchema = new mongoose.Schema(
   {
@@ -18,19 +17,9 @@ const addressSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      maxlength: [25, 'Full name can not be long the 25 characters'],
     },
     mobileNumber: {
       type: String,
-      validate: [
-        {
-          validator: function (v) {
-            return '/^[\+]?[0-9]{0,3}\W?+[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/im';
-          },
-          message: (props) =>
-            `${props.value} is not a valid mobile number`,
-        },
-      ],
       required: true,
     },
 
