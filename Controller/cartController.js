@@ -6,6 +6,7 @@ import Cart from '../Model/cartModel.js';
 export const addToCart = catchAsync(async (req, res, next) => {
   const { productId, quantity } = req.body;
   let cart = await Cart.findOne({ user: req.user.id });
+
   if (!cart) {
     cart = await Cart.create({
       user: req.user.id,
@@ -57,12 +58,6 @@ export const updateCartItem = catchAsync(async (req, res, next) => {
 
   item.quantity = quantity;
 
-  if (quantity <= 0) {
-    return next(
-      new AppError('Quantity must be greater than zero', 400)
-    );
-  }
-
   await cart.save();
 
   sendResponse(res, 200, cart, 'Cart updated sucessfully');
@@ -83,15 +78,21 @@ export const removeCartItem = catchAsync(async (req, res, next) => {
   if (!item) {
     return next(new AppError('Product not found in cart', 404));
   }
+
   if (item.quantity <= quantity) {
-    cart.items = cart.items.filter(
-      (item) => item.product.toString() !== productId
+    await Cart.updateOne(
+      { user: req.user.id },
+      { $pull: { items: { product: productId } } }
     );
   } else {
-    item.quantity -= quantity;
+    await Cart.updateOne(
+      { user: req.user.id, 'items.product': productId },
+      { $inc: { 'items.$.quantity': -quantity } }
+    );
   }
-  await cart.save();
-  sendResponse(res, 200, cart, 'Cart updated successfully');
+
+  const updateCart = await Cart.findOne({ user: req.user.id });
+  sendResponse(res, 200, updateCart, 'Cart updated successfully');
 });
 
 export const getCart = catchAsync(async (req, res, next) => {
@@ -135,13 +136,15 @@ export const getCart = catchAsync(async (req, res, next) => {
 });
 
 export const clearCart = catchAsync(async (req, res, next) => {
-  const cart = await Cart.findOne({ user: req.user.id });
+  const cart = await Cart.findOneAndUpdate(
+    { user: req.user.id },
+    { $ser: { items: [] } },
+    { returnDocument: 'after' }
+  );
 
   if (!cart) {
     return next(new AppError('Cart not found', 404));
   }
 
-  cart.items = [];
-  await cart.save();
   sendResponse(res, 204, null, 'Cart clear successfully');
 });
