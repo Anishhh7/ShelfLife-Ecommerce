@@ -132,7 +132,7 @@ export const signIn = catchAsync(async (req, res, next) => {
     return next(new AppError('This id has been deactivated', 403));
   }
 
-  const isCorrect = await User.checkCorrectPassword(
+  const isCorrect = await user.checkCorrectPassword(
     password,
     user.password
   );
