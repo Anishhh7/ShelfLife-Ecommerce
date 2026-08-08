@@ -13,6 +13,7 @@ export const createProduct = catchAsync(async (req, res, next) => {
 
   const product = await Product.create({
     ...req.body,
+    category: req.body.categoryId,
     vendor: req.user.id,
   });
 
