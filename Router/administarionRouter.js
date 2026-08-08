@@ -14,6 +14,12 @@ router.get(
   AdministrationController.getAllAdministration
 );
 
+router.get(
+  '/all-vendors',
+  AuthController.restrictTo(...permission.staff.readAll),
+  AdministrationController.getAllvendors
+);
+
 router.post(
   '/create-staff',
   AuthController.restrictTo(...permission.staff.create),
@@ -31,6 +37,7 @@ router
 router.patch(
   '/:id/approve',
   AuthController.restrictTo(...permission.staff.vendorApprove),
+  validate(AuthValidation.approvedVendorSchema),
   AdministrationController.approvedVendors
 );
 

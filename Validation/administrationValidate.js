@@ -29,7 +29,7 @@ export const createStaffSchema = z
       .max(30, 'Password cannot exceed 30 characters'),
 
     passwordConfirm: z.string(),
-    role: z.literal('staff'),
+    role: z.literal('staff').default('staff'),
   })
   .refine((data) => data.password === data.passwordConfirm, {
     message: 'Passwords do not match',
@@ -61,4 +61,8 @@ export const updateStaffSchema = z.object({
 
   role: z.literal('staff').optional(),
   active: z.boolean().optional(),
+});
+
+export const approvedVendorSchema = z.object({
+  approved: z.boolean(),
 });

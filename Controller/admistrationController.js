@@ -30,7 +30,7 @@ export const getAllAdministration = catchAsync(
   async (req, res, next) => {
     const administration = await User.find({ role: 'staff' });
 
-    sendResponse(res, 200, administration, undefined, {
+    sendResponse(res, 200, administration, {
       results: administration.length,
     });
   }
@@ -133,14 +133,29 @@ export const approvedVendors = catchAsync(async (req, res, next) => {
     return next(new AppError('Vendor is already approved', 400));
   }
 
-  vendor.approved = true;
+  const updatedVendor = await User.findByIdAndUpdate(
+    req.params.id,
+    { approved: req.body.approved },
+    {
+      returnDocument: 'after',
+      runValidators: true,
+    }
+  );
 
-  await vendor.save();
+
 
   sendResponse(
     res,
     200,
-    vendor,
+    updatedVendor,
     'Vendor approved updated successfully'
   );
+});
+
+export const getAllvendors = catchAsync(async (req, res, next) => {
+  const vendor = await User.find({ role: 'vendor' });
+
+  sendResponse(res, 200, vendor, {
+    results: vendor.length,
+  });
 });
