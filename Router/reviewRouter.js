@@ -8,15 +8,14 @@ import * as ReviewValidation from '../Validation/reviewValidation.js';
 const router = express.Router({ mergeParams: true });
 
 router.use(AuthController.protect);
+router.get('/', ReviewController.getAllReviews);
 
-router
-  .route('/')
-  .get(ReviewController.getAllReviews)
-  .post(
-    AuthController.restrictTo(...permission.review.create),
-    validate(ReviewValidation.createReviewSchema),
-    ReviewController.createReview
-  );
+router.post(
+  '/',
+  AuthController.restrictTo(...permission.review.create),
+  validate(ReviewValidation.createReviewSchema),
+  ReviewController.createReview
+);
 
 router.get(
   '/vendor',

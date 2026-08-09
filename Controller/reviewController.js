@@ -74,10 +74,10 @@ export const getAllReviews = catchAsync(async (req, res, next) => {
     .populate('reviewUser', 'name');
 
   const stats = await Review.aggregate([
-    { $match: { $product: new mongoose.Types.ObjectId(productId) } },
+    { $match: { product: new mongoose.Types.ObjectId(productId) } },
     {
       $group: {
-        _id: '$product',
+        _id: 'product',
         averageRating: { $avg: '$rating' },
         totalReviews: { $sum: 1 },
       },
