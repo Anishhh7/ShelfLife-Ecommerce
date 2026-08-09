@@ -14,11 +14,16 @@ router
   .post(
     validate(CartValidation.addCartSchema),
     CartController.addToCart
-  )
-  .delete(CartController.clearCart);
+  );
+
+router.delete(
+  '/items',
+  validate(CartValidation.removeMultipleCartItemsSchema),
+  CartController.removeMultipleCartItems
+);
 
 router
-  .route('/item')
+  .route('/item/:productId')
   .patch(
     validate(CartValidation.updateCartSchema),
     CartController.updateCartItem
