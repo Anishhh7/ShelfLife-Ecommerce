@@ -13,6 +13,7 @@ import mongoose from 'mongoose';
 import orderDeliveredEmail from '../Utils/emailTemplate/DeliveredEmail.js';
 import orderCancelledEmail from '../Utils/emailTemplate/cancelOrderEmail.js';
 import Product from '../Model/productModel.js';
+import AddressBook from '../Model/addressBookModel.js';
 
 export const placeOrder = catchAsync(async (req, res, next) => {
   const cart = await Cart.findOne({ user: req.user.id }).populate(
@@ -45,8 +46,8 @@ export const placeOrder = catchAsync(async (req, res, next) => {
   }
 
   const address = await AddressBook.findOne({
-    _id: req.body.addressId,
     user: req.user.id,
+    isDefault: true,
   });
 
   if (!address) {
@@ -55,10 +56,10 @@ export const placeOrder = catchAsync(async (req, res, next) => {
     );
   }
 
-  const totalAmount = cart.items.reduce((total, item) => {
-    total += item.quantity * item.product.price;
-    return total;
-  }, 0);
+  const totalAmount = cart.items.reduce(
+    (total, item) => (total += item.quantity * item.product.price),
+    0
+  );
 
   const items = cart.items.map((item) => ({
     product: item.product.id,
@@ -81,8 +82,8 @@ export const placeOrder = catchAsync(async (req, res, next) => {
           totalAmount,
           shippingAddress: {
             fullName: address.fullName,
-            phone: address.phone,
-            address: address.address,
+            phone: address.mobileNumber,
+            address: address.addressLine1,
             city: address.city,
             postalCode: address.postalCode,
           },
@@ -91,6 +92,8 @@ export const placeOrder = catchAsync(async (req, res, next) => {
       ],
       { session }
     );
+
+    order = newOrder;
 
     await Promise.all(
       cart.items.map((item) =>
@@ -123,10 +126,6 @@ export const placeOrder = catchAsync(async (req, res, next) => {
     const vendorIds = Object.keys(groupByVendor);
     const vendors = await User.find({ _id: { $in: vendorIds } });
 
-    await sendEmail(
-      orderCustomerEmail(order, req.user.email, req.user.name)
-    );
-
     await Promise.all([
       sendEmail(
         orderCustomerEmail(order, req.user.name, req.user.email)
@@ -158,7 +157,10 @@ export const getMyOrders = catchAsync(async (req, res, next) => {
   const filters = new APIFeatures(
     Order.find({
       user: req.user.id,
-    }).populate('items.product'),
+    }).populate({
+      path: 'items.product',
+      select: 'name description price images category ',
+    }),
     req.query
   )
     .filter()
@@ -224,6 +226,11 @@ export const updateVendorItemStatus = catchAsync(
   async (req, res, next) => {
     const { itemStatus } = req.body;
 
+    const allowedTransactions = {
+      Pending: 'Confirmed',
+      Confirmed: 'Packed',
+    };
+
     const order = await Order.findById(req.params.orderId).populate(
       'user'
     );
@@ -239,10 +246,6 @@ export const updateVendorItemStatus = catchAsync(
         new AppError('Item not found or you are not authorized', 404)
       );
     }
-    const allowedTransactions = {
-      Pending: 'Confirmed',
-      Confirmed: 'Packed',
-    };
 
     if (allowedTransactions[item.itemStatus] !== itemStatus) {
       return next(
@@ -254,7 +257,7 @@ export const updateVendorItemStatus = catchAsync(
     item.statusHistory.push({
       status: itemStatus,
       updatedAt: new Date(),
-      updatedBy: req.used._id,
+      updatedBy: req.user._id,
     });
 
     await order.save();
@@ -272,6 +275,14 @@ export const updateAdminItemStatus = catchAsync(
   async (req, res, next) => {
     const { itemStatus } = req.body;
 
+    const allowedTransitions = {
+      Pending: 'Confirmed',
+      Confirmed: 'Packed',
+      Packed: 'Shipped',
+      Shipped: 'Out for Delivery',
+      'Out for Delivery': 'Delivered',
+    };
+
     const query = await Order.findById(req.params.orderId);
     if (itemStatus === 'Delivered') query.populate('user');
 
@@ -287,7 +298,7 @@ export const updateAdminItemStatus = catchAsync(
       return next(new AppError('Item not found in this order', 404));
     }
 
-    if (item.itemStatus === itemStatus) {
+    if (allowedTransitions[item.itemStatus] !== itemStatus) {
       return next(
         new AppError(
           `Item is already marked as '${item.itemStatus}'`,
