@@ -24,7 +24,7 @@ router
 router.delete(
   '/:productId',
   AuthController.restrictTo(...permission.wishlist.remove),
-  validate(WishlistValidation.wishlistParamSchema),
+  validate(WishlistValidation.wishlistParamSchema, 'params'),
   WishlistController.removeFromWishlist
 );
 
