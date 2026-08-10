@@ -5,6 +5,7 @@ import * as ProductController from '../Controller/productController.js';
 import reviewRouter from './reviewRouter.js';
 import { validate } from '../Utils/validate.js';
 import * as ProductValidation from '../Validation/productValidation.js';
+import upload from '../Config/multer.js';
 
 const router = express.Router();
 
@@ -18,8 +19,22 @@ router.use(AuthController.protect);
 router.post(
   '/',
   AuthController.restrictTo(...permission.product.create),
+  upload.array('images', 5),
   validate(ProductValidation.createProductSchema),
   ProductController.createProduct
+);
+
+router.post(
+  '/:productId/images',
+  AuthController.restrictTo(...permission.product.update),
+  upload.array('images', 5),
+  ProductController.addProductImages
+);
+
+router.delete(
+  '/:productId/images',
+  AuthController.restrictTo(...permission.product.delete),
+  ProductController.removeProductImages
 );
 
 router

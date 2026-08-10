@@ -4,7 +4,7 @@ const productSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true, 
+      required: true,
       trim: true,
     },
 
@@ -14,7 +14,7 @@ const productSchema = new mongoose.Schema(
 
     price: {
       type: Number,
-      required: true, 
+      required: true,
     },
 
     stock: {
@@ -22,9 +22,12 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
-    images: {
-      type: [String],
-    },
+    images: [
+      {
+        url: String,
+        publicId: String,
+      },
+    ],
 
     category: {
       type: mongoose.Schema.Types.ObjectId,

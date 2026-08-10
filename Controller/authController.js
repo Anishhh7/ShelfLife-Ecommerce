@@ -6,6 +6,8 @@ import User from '../Model/userModel.js';
 import { promisify } from 'util';
 import { ref } from 'process';
 import sendEmail from '../Utils/sendEmail.js';
+import { changeCloudinaryImage } from '../Utils/uploadToCloudinary.js';
+import sendResponse from '../Utils/sendResponse.js';
 
 const signAccessToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -254,8 +256,8 @@ export const resetPassword = catchAsync(async (req, res, next) => {
   if (!user) {
     return next(new AppError('OTP is Invalid or has expired', 400));
   }
-  user.password =password
-  user.passwordConfirm = passwordConfirm
+  user.password = password;
+  user.passwordConfirm = passwordConfirm;
   user.passwordResetOTP = undefined;
   user.passwordResetOTPExpires = undefined;
 
@@ -372,3 +374,34 @@ export const logout = catchAsync(async (req, res, next) => {
     status: 'success',
   });
 });
+
+export const changeUserProfile = catchAsync(
+  async (req, res, next) => {
+    if (!req.file) {
+      return next(new AppError('Please upload an image', 400));
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    const newImage = await changeCloudinaryImage(
+      user.profileImage?.publicId,
+      req.file,
+      'shelflife/users'
+    );
+
+    user.profileImage = newImage;
+
+    await user.save();
+
+    sendResponse(
+      res,
+      200,
+      user,
+      'Profile photo changed successfully'
+    );
+  }
+);

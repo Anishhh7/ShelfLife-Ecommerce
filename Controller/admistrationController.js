@@ -2,6 +2,7 @@ import User from '../Model/userModel.js';
 import catchAsync from '../Utils/catchAsync.js';
 import AppError from '../Utils/appError.js';
 import sendResponse from '../Utils/sendResponse.js';
+import { changeCloudinaryImage } from '../Utils/uploadToCloudinary.js';
 
 const filterObj = (obj, ...allowFields) => {
   const newObj = {};
@@ -142,8 +143,6 @@ export const approvedVendors = catchAsync(async (req, res, next) => {
     }
   );
 
-
-
   sendResponse(
     res,
     200,
@@ -159,3 +158,34 @@ export const getAllvendors = catchAsync(async (req, res, next) => {
     results: vendor.length,
   });
 });
+
+export const changeVendorImage = catchAsync(
+  async (req, res, next) => {
+    if (!req.file) {
+      return next(new AppError('Please upload an image', 400));
+    }
+
+    const vendor = await User.findById(req.user.id);
+
+    if (!vendor) {
+      return next(new AppError('Vendor not found', 404));
+    }
+
+    const newImage = await changeCloudinaryImage(
+      vendor.vendorImage?.publicId,
+      req.file,
+      'shelflife/vendors'
+    );
+
+    vendor.vendorImage = newImage;
+
+    await vendor.save();
+
+    sendResponse(
+      res,
+      200,
+      vendor,
+      'Vendor image updated successfully'
+    );
+  }
+);

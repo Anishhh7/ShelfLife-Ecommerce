@@ -1,14 +1,14 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-
+import Default_Images from '../Config/defaultImages.js';
 
 const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       trim: true,
-      required:true
+      required: true,
     },
 
     email: {
@@ -16,32 +16,32 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      required:true
+      required: true,
     },
 
     phone: {
       type: String,
       unique: true,
       trim: true,
-      required:true
+      required: true,
     },
 
     password: {
       type: String,
       select: false,
-      required:true
+      required: true,
     },
 
     passwordConfirm: {
       type: String,
-      required:true
+      select: false,
     },
 
     role: {
       type: String,
       enum: ['customer', 'staff', 'vendor', 'admin'],
       default: 'customer',
-      required:true
+      required: true,
     },
 
     active: {
@@ -62,6 +62,21 @@ const userSchema = new mongoose.Schema(
       type: String,
     },
 
+    profileImage: {
+      type: {
+        url: String,
+        publicId: String,
+      },
+      default: Default_Images.user,
+    },
+
+    vendorImage: {
+      type: {
+        url: String,
+        publicId: String,
+      },
+      default: Default_Images.vendor,
+    },
     location: {
       type: String,
       enum: ['Point'],
@@ -129,8 +144,7 @@ userSchema.methods.createPasswordResetOTP = function () {
     .update(otp)
     .digest('hex');
 
-  this.passwordResetOTPExpires =
-    Date.now() + 10 * 60 * 1000;
+  this.passwordResetOTPExpires = Date.now() + 10 * 60 * 1000;
 
   console.log({ otp }, 'Hashed:', this.passwordResetOTP);
 

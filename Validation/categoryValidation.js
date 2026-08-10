@@ -10,6 +10,13 @@ export const createCategorySchema = z.object({
   description: z.string().max(500).optional(),
 
   active: z.boolean().default(true),
+
+  image: z
+    .object({
+      url: z.string().url(),
+      publicId: z.string(),
+    })
+    .optional(),
 });
 
 export const updateCategorySchema = z.object({
@@ -23,4 +30,11 @@ export const updateCategorySchema = z.object({
   description: z.string().max(500).optional(),
 
   active: z.boolean().optional(),
+
+  image: z
+    .object({
+      url: z.string().url(),
+      publicId: z.string(),
+    })
+    .optional(),
 });
