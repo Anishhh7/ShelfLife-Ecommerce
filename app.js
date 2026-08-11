@@ -1,4 +1,5 @@
 import express from 'express';
+import { stripeWebHook } from './Controller/paymentController.js';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 dotenv.config({ path: './Config/config.env', quiet: true });
@@ -19,10 +20,19 @@ import wishlistRouter from './Router/wishlistRouter.js';
 import addressBookRouter from './Router/addressBookRouter.js';
 import categoryRouter from './Router/categoryRouter.js';
 import vendorRouter from './Router/vendorRouter.js';
+import paymentRouter from './Router/paymentRouter.js';
 
 const app = express();
 app.set('query parser', 'extended');
+
+app.use(
+  '/api/v1/payments/webhook',
+  express.raw({ type: 'application/json' }),
+  stripeWebHook
+);
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
 
 if (process.env.NODE_ENV === 'development') {
@@ -53,6 +63,7 @@ app.use('/api/v1/wishlists', wishlistRouter);
 app.use('/api/v1/addresses', addressBookRouter);
 app.use('/api/v1/categories', categoryRouter);
 app.use('/api/v1/vendors', vendorRouter);
+app.use('/api/v1/payments', paymentRouter);
 
 app.all('/{*path}', (req, res, next) => {
   next(
