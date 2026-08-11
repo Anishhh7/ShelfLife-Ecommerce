@@ -6,7 +6,7 @@ import reviewRouter from './reviewRouter.js';
 import { validate } from '../Utils/validate.js';
 import * as ProductValidation from '../Validation/productValidation.js';
 import upload from '../Config/multer.js';
-import { ImageFiledSchema } from '../Utils/fileValidation.js';
+import * as FileValidation from '../Utils/fileValidation.js';
 
 const router = express.Router();
 
@@ -21,7 +21,7 @@ router.post(
   '/',
   AuthController.restrictTo(...permission.product.create),
   upload.array('images', 5),
-  validate(ImageFiledSchema, 'file'),
+  validate(FileValidation.multipleImagesSchema, 'file'),
   validate(ProductValidation.createProductSchema),
   ProductController.createProduct
 );
@@ -30,7 +30,7 @@ router.post(
   '/:productId/images',
   AuthController.restrictTo(...permission.product.update),
   upload.array('images', 5),
-  validate(ImageFiledSchema, 'file'),
+  validate(FileValidation.multipleImagesSchema, 'file'),
   ProductController.addProductImages
 );
 

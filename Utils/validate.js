@@ -2,7 +2,15 @@ import AppError from './appError.js';
 
 export const validate = (schema, source = 'body') => {
   return (req, res, next) => {
-    const data = req[source];
+    let data;
+
+    if (source === 'file') {
+      data = req.files?.length ? req.files : req.file;
+
+      if (!data) return next();
+    } else {
+      data = req[source] || {};
+    }
 
     const result = schema.safeParse(data);
 
@@ -16,9 +24,11 @@ export const validate = (schema, source = 'body') => {
         )
       );
     }
-    if (source !== 'file') {
-      req[source] = result.data;
+
+    if (source === 'body') {
+      req.body = result.data;
     }
+
     next();
   };
 };

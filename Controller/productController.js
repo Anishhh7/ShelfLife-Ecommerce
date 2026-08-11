@@ -16,15 +16,17 @@ export const createProduct = catchAsync(async (req, res, next) => {
     return next(new AppError('Inavalid Category', 404));
   }
 
-  const uploadedImages = await Promise.all(
-    req.files.map((file) =>
-      uploadToCloudinary(file, 'shelflife/products')
-    )
-  );
+  const uploadImages = req.files?.length
+    ? await Promise.all(
+        req.files.map((file) =>
+          uploadToCloudinary(file, 'shelflife/products')
+        )
+      )
+    : [];
 
   const product = await Product.create({
     ...req.body,
-    images: uploadedImages,
+    images: uploadImages,
     category: req.body.categoryId,
     vendor: req.user.id,
   });

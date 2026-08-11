@@ -14,13 +14,11 @@ export const createProductSchema = z.object({
 
   price: z.coerce.number().positive(),
 
-  stock: z.coerce.number().int().positive(),
+  stock: z.coerce.number().positive(),
 
   categoryId: z
     .string()
     .regex(/^[0-9a-fA-F]{24}$/, 'Invalid Category ID'),
-
-  active: z.boolean().default(true),
 });
 
 export const updateProductSchema = z.object({
