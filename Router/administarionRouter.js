@@ -4,6 +4,8 @@ import * as AuthController from '../Controller/authController.js';
 import * as AdministrationController from '../Controller/admistrationController.js';
 import { validate } from '../Utils/validate.js';
 import * as AuthValidation from '../Validation/administrationValidate.js';
+import upload from '../Config/multer.js';
+import { ImageFiledSchema } from '../Utils/fileValidation.js';
 
 const router = express.Router();
 router.use(AuthController.protect);
@@ -25,6 +27,14 @@ router.post(
   AuthController.restrictTo(...permission.staff.create),
   validate(AuthValidation.createStaffSchema),
   AdministrationController.createAdministraation
+);
+
+router.patch(
+  '/staff/change-profile-picture',
+  AuthController.restrictTo(...permission.staff.changeImage),
+  upload.single('image'),
+  validate(ImageFiledSchema, 'file'),
+  AdministrationController.changeStaffImage
 );
 
 router

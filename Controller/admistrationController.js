@@ -184,8 +184,37 @@ export const changeVendorImage = catchAsync(
     sendResponse(
       res,
       200,
-      vendor,
+      newImage,
       'Vendor image updated successfully'
     );
   }
 );
+
+export const changeStaffImage = catchAsync(async (req, res, next) => {
+  if (!req.file) {
+    return next(new AppError('Please upload an image', 400));
+  }
+
+  const staff = await User.findById(req.user.id);
+
+  if (!staff) {
+    return next(new AppError('Vendor not found', 404));
+  }
+
+  const newImage = await changeCloudinaryImage(
+    staff.staffImage?.publicId,
+    req.file,
+    'shelflife/administration'
+  );
+
+  staff.staffImage = newImage;
+
+  await staff.save();
+
+  sendResponse(
+    res,
+    200,
+    newImage,
+    'Staff image updated successfully'
+  );
+});

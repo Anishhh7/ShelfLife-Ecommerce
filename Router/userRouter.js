@@ -4,6 +4,7 @@ import { validate } from '../Utils/validate.js';
 import * as AuthValidation from '../Validation/authValidation.js';
 import permission from '../Config/permission.js';
 import upload from '../Config/multer.js';
+import { ImageFiledSchema } from '../Utils/fileValidation.js';
 
 const router = express.Router();
 
@@ -42,6 +43,7 @@ router.patch(
   '/me/profile-image',
   AuthController.restrictTo('customer'),
   upload.single('image'),
+  validate(ImageFiledSchema, 'file'),
   AuthController.changeUserProfile
 );
 

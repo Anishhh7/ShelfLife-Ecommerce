@@ -28,13 +28,6 @@ export const createStaffSchema = z
       .min(8, 'Password must be at least 8 characters')
       .max(30, 'Password cannot exceed 30 characters'),
 
-    image: z
-      .object({
-        url: z.string().url(),
-        publicId: z.string(),
-      })
-      .optional(),
-
     passwordConfirm: z.string(),
     role: z.literal('staff').default('staff'),
   })

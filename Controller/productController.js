@@ -91,10 +91,7 @@ export const addProductImages = catchAsync(async (req, res, next) => {
 
   const uploadedImages = await Promise.all(
     req.files.map((file) =>
-      uploadToCloudinary(
-        file,
-        'shelflife/products'
-      )
+      uploadToCloudinary(file, 'shelflife/products')
     )
   );
 
@@ -105,7 +102,7 @@ export const addProductImages = catchAsync(async (req, res, next) => {
   sendResponse(
     res,
     200,
-    product,
+    uploadedImages,
     'Product images added successfully'
   );
 });
@@ -146,8 +143,8 @@ export const removeProductImages = catchAsync(
 
     sendResponse(
       res,
-      200,
-      product,
+      204,
+      null,
       'Product image removed successfully'
     );
   }

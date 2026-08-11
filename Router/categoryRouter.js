@@ -5,6 +5,7 @@ import * as CategoryController from '../Controller/categoryController.js';
 import { validate } from '../Utils/validate.js';
 import * as CategoryValidation from '../Validation/categoryValidation.js';
 import upload from '../Config/multer.js';
+import { ImageFiledSchema } from '../Utils/fileValidation.js';
 
 const router = express.Router();
 
@@ -17,6 +18,8 @@ router.use(AuthController.protect);
 router.post(
   '/',
   AuthController.restrictTo(...permission.category.create),
+  upload.single('image'),
+  validate(ImageFiledSchema, 'file'),
   validate(CategoryValidation.createCategorySchema),
   CategoryController.createCategory
 );
@@ -25,6 +28,7 @@ router.patch(
   '/:categoryId/cover-image',
   AuthController.restrictTo(...permission.category.update),
   upload.single('image'),
+  validate(ImageFiledSchema, 'file'),
   CategoryController.changeCategoryCoverImage
 );
 

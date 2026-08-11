@@ -77,6 +77,14 @@ const userSchema = new mongoose.Schema(
       },
       default: Default_Images.vendor,
     },
+
+    staffImage: {
+      type: {
+        url: String,
+        publicId: String,
+      },
+      default: Default_Images.staff,
+    },
     location: {
       type: String,
       enum: ['Point'],

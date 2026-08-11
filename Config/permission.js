@@ -6,6 +6,7 @@ export default {
     delete: ['admin'],
     vendorApprove: ['admin'],
     getvendor: ['admin'],
+    changeImage:['staff']
   },
   vendor: {
     readAll: ['admin'],

@@ -400,7 +400,7 @@ export const changeUserProfile = catchAsync(
     sendResponse(
       res,
       200,
-      user,
+      newImage,
       'Profile photo changed successfully'
     );
   }
