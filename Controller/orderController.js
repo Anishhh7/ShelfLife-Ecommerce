@@ -19,6 +19,7 @@ export const placeOrder = catchAsync(async (req, res, next) => {
   const cart = await Cart.findOne({ user: req.user.id }).populate(
     'items.product'
   );
+  const { items: requestedItems } = req.body;
 
   if (!cart) {
     return next(new AppError('Cart not found', 404));
@@ -32,7 +33,17 @@ export const placeOrder = catchAsync(async (req, res, next) => {
     );
   }
 
-  const outOfStock = cart.items.find(
+  const selectedItems = cart.items.filter((item) =>
+    requestedItems.some(
+      (selected) => selected.product === item.product.id
+    )
+  );
+
+  if (selectedItems.length === 0) {
+    return next(new AppError('No valid items selected', 400)); 
+  }
+
+  const outOfStock = selectedItems.find(
     (item) => item.quantity > item.product.stock
   );
 
@@ -56,12 +67,12 @@ export const placeOrder = catchAsync(async (req, res, next) => {
     );
   }
 
-  const totalAmount = cart.items.reduce(
-    (total, item) => (total += item.quantity * item.product.price),
+  const totalAmount = selectedItems.reduce(
+    (total, item) => total + item.quantity * item.product.price,
     0
   );
 
-  const items = cart.items.map((item) => ({
+  const items = selectedItems.map((item) => ({
     product: item.product.id,
     vendor: item.product.vendor,
     productName: item.product.name,
@@ -96,7 +107,7 @@ export const placeOrder = catchAsync(async (req, res, next) => {
     order = newOrder;
 
     await Promise.all(
-      cart.items.map((item) =>
+      selectedItems.map((item) =>
         Product.findByIdAndUpdate(
           item.product.id,
           { $inc: { stock: -item.quantity } },
@@ -105,7 +116,12 @@ export const placeOrder = catchAsync(async (req, res, next) => {
       )
     );
 
-    cart.items = [];
+    cart.items = cart.items.filter(
+      (item) =>
+        !requestedItems.some(
+          (selected) => selected.product === item.product.id
+        )
+    );
     await cart.save({ session });
     await session.commitTransaction();
   } catch (err) {
