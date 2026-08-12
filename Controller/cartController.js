@@ -34,15 +34,15 @@ export const addToCart = catchAsync(async (req, res, next) => {
 
   if (item) {
     item.quantity += quantity;
+  } else {
+    cart.items.push({
+      product: product._id,
+      vendor: product.vendor,
+      productName: product.name,
+      price: product.price,
+      quantity,
+    });
   }
-
-  cart.items.push({
-    product: product._id,
-    vendor: product.vendor,
-    productName: product.name,
-    price: product.price,
-    quantity,
-  });
 
   await cart.save();
 
