@@ -1,43 +1,312 @@
 datasource db {
   provider = "postgresql"
 }
- 
+
 generator client {
   provider = "prisma-client"
   output   = "./generated"
 }
 
 model User {
-  id Int  @id @default(autoincrement())
-  name String?
-  email String? @unique
-  phone String? @unique
-  password String?
-  passwordConfirm String? 
-  role Role @default(Customer)
+  id Int @id @default(autoincrement())
+
+  name            String
+  email           String @unique
+  phone           String @unique
+  password        String
+  passwordConfirm String
+
+  role   Role    @default(Customer)
   active Boolean @default(true)
+
   passwordChangedAt DateTime?
-  approved Boolean @default(false)
-  storeName String?
-  profileImageUrl String?
+  approved          Boolean   @default(false)
+  storeName         String?
+
+  profileImageUrl      String?
   profileImagePublicId String?
-  vendorImageUrl String?
+
+  vendorImageUrl      String?
   vendorImagePublicId String?
-  staffImageUrl String?
+
+  staffImageUrl      String?
   staffImagePublicId String?
-  location String @default("Point")
+
+  location    String  @default("Point")
   coordinates Float[]
-  address String?
+  address     String?
   description String?
-  passwordResetOTP String?
+
+  passwordResetOTP        String?
   passwordResetOTPExpires DateTime?
-  refreshTokenExpires DateTime?
-  refreshTokenHash String?
-  createdAt DateTime @ default(now())
-  }
-  enum Role{
-    Customer
-    Vendor
-    Staff
-    Admin
-    }
+  refreshTokenExpires     DateTime?
+  refreshTokenHash        String?
+
+  createdAt DateTime @default(now())
+
+  products  Product[] @relation("VendorProducts")
+  carts     Cart[]
+  addresses Address[]
+
+  orders        Order[]         @relation("CustomerOrders")
+  vendorItems   OrderItem[]     @relation("VendorOrderItems")
+  statusUpdates StatusHistory[] @relation("StatusUpdatedBy")
+
+  productVendorReviews Review[] @relation("ProductVendorReviews")
+  reviewUserReviews    Review[] @relation("UserReviews")
+
+  wishlists Wishlist[] @relation("UserWishlists")
+
+  payments Payment[] @relation("UserPayments")
+}
+
+enum Role {
+  Customer
+  Vendor
+  Staff
+  Admin
+}
+
+model Category {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+
+  coverImageUrl      String?
+  coverImagePublicId String?
+
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  products Product[]
+}
+
+model Product {
+  id Int @id @default(autoincrement())
+
+  name        String
+  description String?
+  price       Float
+  stock       Int
+  active      Boolean @default(true)
+
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId Int
+
+  vendor   User @relation("VendorProducts", fields: [vendorId], references: [id])
+  vendorId Int
+
+  images ProductImage[]
+
+  createdAt DateTime @default(now())
+
+  cartItems     Item[]
+  orderItems    OrderItem[]
+  reviews       Review[]
+  wishlistItems WishlistItem[]
+}
+
+model ProductImage {
+  id        Int     @id @default(autoincrement())
+  url       String?
+  publicId  String?
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId Int
+}
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  items     Item[]
+  createdAt DateTime @default(now())
+}
+
+model Item {
+  id Int @id @default(autoincrement())
+
+  cart   Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId Int
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+
+  quantity Int? @default(1)
+}
+
+model Address {
+  id Int @id @default(autoincrement())
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  label Label
+
+  fullName     String
+  mobileNumber String
+  addressLine1 String
+  addressLine2 String
+  province     String
+  postalCode   String
+  country      String
+
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+enum Label {
+  Home
+  Office
+  Other
+}
+
+model Order {
+  id Int @id @default(autoincrement())
+
+  user   User @relation("CustomerOrders", fields: [userId], references: [id])
+  userId Int
+
+  items OrderItem[]
+
+  shippingAddressFullName   String
+  shippingAddressPhone      String
+  shippingAddressAddress    String
+  shippingAddressCity       String
+  shippingAddressPostalCode String
+
+  totalAmount   Float
+  paymentMethod String
+  paymentStatus PaymentStatus @default(Pending)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Payment[]
+}
+
+model OrderItem {
+  id Int @id @default(autoincrement())
+
+  order   Order @relation(fields: [orderId], references: [id])
+  orderId Int
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+
+  vendor   User @relation("VendorOrderItems", fields: [vendorId], references: [id])
+  vendorId Int
+
+  productName String
+  price       Float
+  quantity    Int
+
+  itemStatus ItemStatus @default(Pending)
+
+  statusHistory StatusHistory[]
+
+  createdAt DateTime @default(now())
+}
+
+model StatusHistory {
+  id Int @id @default(autoincrement())
+
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  orderItemId Int
+
+  status ItemStatus
+
+  updatedBy   User? @relation("StatusUpdatedBy", fields: [updatedById], references: [id])
+  updatedById Int
+
+  updatedAt DateTime @default(now())
+}
+
+enum ItemStatus {
+  Pending
+  Confirmed
+  Packed
+  Shipped
+  OutForDelivery
+  Delivered
+  Cancelled
+}
+
+enum PaymentStatus {
+  Pending
+  Paid
+  Failed
+}
+
+model Review {
+  id Int @id @default(autoincrement())
+
+  review String?
+  rating Int
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+
+  productVendor User @relation("ProductVendorReviews", fields: [vendorId], references: [id])
+  vendorId      Int
+
+  reviewUser User @relation("UserReviews", fields: [userId], references: [id])
+  userId     Int
+
+  createdAt DateTime @default(now())
+}
+
+model Wishlist {
+  id Int @id @default(autoincrement())
+
+  user   User @relation("UserWishlists", fields: [userId], references: [id])
+  userId Int
+
+  items WishlistItem[]
+
+  createdAt DateTime @default(now())
+}
+
+model WishlistItem {
+  id Int @id @default(autoincrement())
+
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  wishlistId Int
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+}
+
+model Payment {
+  id Int @id @default(autoincrement())
+
+  user   User @relation("UserPayments", fields: [userId], references: [id])
+  userId Int
+
+  order   Order @relation(fields: [orderId], references: [id])
+  orderId Int
+
+  paymentId String
+
+  provider String
+
+  method Method
+
+  amount Float
+
+  status Status @default(Pending)
+
+  createdAt DateTime @default(now())
+}
+
+enum Method {
+  CreditCard
+  DebitCard
+  Wallet
+  COD
+}
+
+enum Status {
+  Pending
+  Completed
+  Cancelled
+}
