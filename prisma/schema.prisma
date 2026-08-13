@@ -1,0 +1,43 @@
+datasource db {
+  provider = "postgresql"
+}
+ 
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+model User {
+  id Int  @id @default(autoincrement())
+  name String?
+  email String? @unique
+  phone String? @unique
+  password String?
+  passwordConfirm String? 
+  role Role @default(Customer)
+  active Boolean @default(true)
+  passwordChangedAt DateTime?
+  approved Boolean @default(false)
+  storeName String?
+  profileImageUrl String?
+  profileImagePublicId String?
+  vendorImageUrl String?
+  vendorImagePublicId String?
+  staffImageUrl String?
+  staffImagePublicId String?
+  location String @default("Point")
+  coordinates Float[]
+  address String?
+  description String?
+  passwordResetOTP String?
+  passwordResetOTPExpires DateTime?
+  refreshTokenExpires DateTime?
+  refreshTokenHash String?
+  createdAt DateTime @ default(now())
+  }
+  enum Role{
+    Customer
+    Vendor
+    Staff
+    Admin
+    }
