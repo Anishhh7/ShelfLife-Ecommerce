@@ -1,8 +1,10 @@
 node_modules/
 config.env
 .env
-/src/generated/prisma
+prisma/generated/
+/src/generated/prisma/
 .agents/
 .claude/
 .windsurf/
 skills-lock.json
+
