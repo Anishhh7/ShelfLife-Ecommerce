@@ -1,6 +1,14 @@
 import AppError from '../utils/AppError';
 import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import { Prisma } from '../generated/prisma/client';
+
+const handleDuplicateFiledDB = (error: any) => {
+  const fields = error.meta?.target;
+
+  const field = Array.isArray(fields) ? fields.join(', ') : 'field';
+  return new AppError(`Duplicate value for ${field}`, 409);
+};
 
 const handleZodError = (err: ZodError) => {
   const errors = err.issues.map((issue) => ({
@@ -47,29 +55,25 @@ export default (
   res: Response,
   next: NextFunction
 ) => {
+  console.error('Error Caught by Global Handler:', err);
+
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
-  console.error('Error Caught by Global Handler:', err);
+  if (err instanceof ZodError) {
+    err = handleZodError(err);
+  }
+
+  if (err?.code === 'P2002') {
+    err = handleDuplicateFiledDB(err);
+  }
+  // src/controller/errorController.ts
+  if (err instanceof SyntaxError && 'body' in err) {
+    err = new AppError('Invalid JSON payload in request body', 400);
+  }
 
   if (process.env.NODE_ENV === 'development') {
     return sendErrorDev(err, res);
   }
-
-  if (process.env.NODE_ENV === 'production') {
-    let error: AppError = Object.create(err);
-
-    error.message = err.message;
-    error.name = err.name;
-    error.isOperational = err.isOperational || false;
-    error.statusCode = err.statusCode;
-    err.status = err.status;
-
-    if (err.code !== undefined) error.code = err.code;
-
-    if (err.errors !== undefined) error.errors = err.errors;
-
-    return sendErrorProd(error, res);
-  }
-  return sendErrorDev(err, res);
+  return sendErrorProd(err, res);
 };

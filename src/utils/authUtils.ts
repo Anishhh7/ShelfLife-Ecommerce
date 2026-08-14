@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import type { User } from '../generated/prisma/client';
 
 export const hashPassword = async (password: string) => {
   return await bcrypt.hash(password, 12);
@@ -40,4 +41,48 @@ export const createResetPasswordOtp = async () => {
     hashedOTP,
     passwordResetOTPExpires,
   };
+};
+
+export const sanitizeUser = (user: User) => {
+  const common = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    active: user.active,
+  };
+
+  if (user.role === 'Customer') {
+    return {
+      ...common,
+      profileImageUrl: user.profileImageUrl,
+      
+    };
+  }
+
+  if (user.role === 'Vendor') {
+    return {
+      ...common,
+      approved: user.approved,
+      storeName: user.storeName,
+      vendorImageUrl: user.vendorImageUrl,
+      vendorImagePublicId: user.vendorImagePublicId,
+      location: user.location,
+      coordinates: user.coordinates,
+      address: user.address,
+      description: user.description,
+    };
+  }
+
+  if (user.role === 'Staff') {
+    return {
+      ...common,
+      staffImageUrl: user.staffImageUrl,
+      staffImagePublicId: user.staffImagePublicId,
+      address: user.address,
+    };
+  }
+
+  return common;
 };

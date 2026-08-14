@@ -1,13 +1,12 @@
-import express from 'express';
+import express, {Router} from 'express';
 import * as AuthController from '../controller/authController';
 import * as AuthValidation from '../validation/authValidation';
 import { validate } from '../utils/validate';
 
-const router = express();
+const router = Router();
 
 router.post(
-  '/signup',
-  validate(AuthValidation.signUpSchema),
+  '/signup',validate(AuthValidation.signUpSchema),
   AuthController.signUp
 );
 

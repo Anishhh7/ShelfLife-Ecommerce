@@ -58,7 +58,7 @@ export const signUpSchema = z
     path: ['passwordConfirm'],
   })
   .superRefine((data, ctx) => {
-    if (data.role !== 'Vendor') {
+    if (data.role === 'Vendor') {
       const requiredVendorFields = [
         'storeName',
         'address',

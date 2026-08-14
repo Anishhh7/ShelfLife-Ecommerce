@@ -14,6 +14,7 @@ import {
   createResetPasswordOtp,
 } from '../utils/authUtils';
 import type { Role } from '../generated/prisma/client';
+import { sanitizeUser } from '../utils/authUtils';
 
 const signAccessToken = (id: number): string => {
   return jwt.sign({ id }, process.env.JWT_SECRET!, {
@@ -76,19 +77,15 @@ const createSendToken = async (
     path: '/api/v1/users/refresh',
   };
 
-  const {
-    password: _,
-    refreshTokenHash: __,
-    ...userWithoutSensitiveData
-  } = user;
-
   res.cookie('jwt', accessToken, accessCookieOptions);
   res.cookie('refreshToken', refreshToken, refreshCookieOptions);
+
+  const safeuser = sanitizeUser(user);
 
   res.status(statusCode).json({
     status: 'success',
     token: accessToken,
-    data: { user: userWithoutSensitiveData },
+    data: { user: safeuser },
   });
 };
 

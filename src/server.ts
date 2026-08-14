@@ -1,6 +1,5 @@
+import 'dotenv/config';
 import app from './app';
-import dotenv from 'dotenv';
-dotenv.config({ path: './env', quiet: true });
 import type { Server } from 'node:http';
 import prisma from './config/prisma';
 
