@@ -3,9 +3,9 @@ class AppError extends Error {
   status: string;
   errors: unknown | null;
   isOperational: boolean;
-    code?: string | number | undefined;
+  code?: string | number | undefined;
 
-  constructor(message: string, statusCode: number, errors = null) {
+  constructor(message: string, statusCode: number, errors?: unknown) {
     super(message);
 
     this.statusCode = statusCode;

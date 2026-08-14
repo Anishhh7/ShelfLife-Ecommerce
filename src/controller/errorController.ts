@@ -1,5 +1,15 @@
 import AppError from '../utils/AppError';
 import type { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
+
+const handleZodError = (err: ZodError) => {
+  const errors = err.issues.map((issue) => ({
+    field: issue.path.join(', '),
+    message: issue.message,
+  }));
+
+  return new AppError('Validation failed', 400, errors);
+};
 
 const sendErrorDev = (err: AppError, res: Response) => {
   res.status(err.statusCode).json({
