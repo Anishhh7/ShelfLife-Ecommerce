@@ -4,7 +4,7 @@ datasource db {
 
 generator client {
   provider = "prisma-client"
-  output   = "./generated"
+  output   = "../src/generated/prisma"
 }
 
 model User {
@@ -41,6 +41,7 @@ model User {
   passwordResetOTPExpires DateTime?
   refreshTokenExpires     DateTime?
   refreshTokenHash        String?
+  refreshFamily           String?
 
   createdAt DateTime @default(now())
 
