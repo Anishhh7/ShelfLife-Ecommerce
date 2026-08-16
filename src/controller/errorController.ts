@@ -3,6 +3,41 @@ import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { Prisma } from '../generated/prisma/client';
 
+const handlePrismaValidationError = (
+  err: Prisma.PrismaClientValidationError
+): AppError => {
+  return new AppError(
+    'Invalid input data or missing required fields in database query.',
+    400
+  );
+};
+
+const handlePrismaKnownError = (
+  err: Prisma.PrismaClientKnownRequestError
+): AppError => {
+  if (err.code === 'P2002') {
+    const fields =
+      (err.meta?.target as string[])?.join(', ') || 'field';
+    return new AppError(
+      `A record with this ${fields} already exists.`,
+      400
+    );
+  }
+  if (err.code === 'P2025') {
+    return new AppError('Record not found.', 404);
+  }
+  if (err.code === 'P2003') {
+    return new AppError(
+      'Invalid reference ID (Foreign key constraint failed).',
+      400
+    );
+  }
+  return new AppError(
+    `Database request error (Code: ${err.code})`,
+    400
+  );
+};
+
 const handleDuplicateFiledDB = (error: any) => {
   const fields = error.meta?.target;
 
@@ -68,6 +103,15 @@ export default (
     err = handleDuplicateFiledDB(err);
   }
   // src/controller/errorController.ts
+
+  if (err instanceof Prisma.PrismaClientValidationError) {
+    err = handlePrismaValidationError(err);
+  }
+
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    err = handlePrismaKnownError(err);
+  }
+
   if (err instanceof SyntaxError && 'body' in err) {
     err = new AppError('Invalid JSON payload in request body', 400);
   }
