@@ -50,14 +50,14 @@ export const sanitizeUser = (user: User) => {
     email: user.email,
     phone: user.phone,
     role: user.role,
-    active: user.active,
+    createdAt: user.createdAt,
   };
 
   if (user.role === 'Customer') {
     return {
       ...common,
       profileImageUrl: user.profileImageUrl,
-      
+      active: user.active,
     };
   }
 
