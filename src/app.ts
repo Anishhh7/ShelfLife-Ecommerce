@@ -6,6 +6,8 @@ import globalErrorHandler from './controller/errorController';
 import AppError from './utils/AppError';
 import authRouter from './Router/authRouter';
 import administrationRouter from './Router/administrationRouter';
+import addressRouter from './Router/addressRouter';
+
 
 const app: Application = express();
 app.set('query parser', 'extended');
@@ -18,6 +20,7 @@ if (process.env.NODE_ENV === 'development') {
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/administrations', administrationRouter);
+app.use('/api/v1/addresses', addressRouter);
 
 app.all(
   '/{*path}',
