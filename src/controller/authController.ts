@@ -15,6 +15,7 @@ import {
 } from '../utils/authUtils';
 import type { Role } from '../generated/prisma/client';
 import { sanitizeUser } from '../utils/authUtils';
+import type { userInfo } from 'os';
 
 const signAccessToken = (id: number): string => {
   return jwt.sign({ id }, process.env.JWT_SECRET!, {
@@ -141,11 +142,17 @@ const createSendTokenRotated = async (
   });
 };
 
-export const signUp = catchAsync(async (req, res) => {
+export const signUp = catchAsync(async (req, res, next) => {
+  const { password, passwordConfirm, ...userData } = req.body;
+
+  if (password !== passwordConfirm) {
+    return next(new AppError('Passwords do not match', 400));
+  }
+
   const hashedPassword = await hashPassword(req.body.password);
 
   const newUser = await prisma.user.create({
-    data: { ...req.body, password: hashedPassword },
+    data: { ...userData, password: hashedPassword },
   });
 
   await createSendToken(newUser, 201, res);

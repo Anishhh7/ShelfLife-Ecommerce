@@ -43,7 +43,7 @@ export const createResetPasswordOtp = async () => {
   };
 };
 
-export const sanitizeUser = (user: User) => {
+export const sanitizeUser = <T extends Partial<User>>(user: T) => {
   const common = {
     id: user.id,
     name: user.name,

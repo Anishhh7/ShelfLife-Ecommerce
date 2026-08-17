@@ -34,7 +34,7 @@ export const signUpSchema = z
       ),
 
     password: passwordSchema,
-    passwordConfirm: z.string(),
+    passwordConfirm: z.string().optional(),
 
     role: z.enum(['Customer', 'Vendor']).default('Customer'),
 

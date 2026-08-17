@@ -10,4 +10,12 @@ export default {
     ReadPendingVendors: Role.Admin,
     ReadVendor: Role.Admin,
   },
+
+  address: {
+    CreateAddress: Role.Customer,
+    UpdateAddress: Role.Customer,
+    ReadAllAddress: Role.Customer,
+    DeleteAddress: Role.Customer,
+    SetdefaultAddress: Role.Customer,
+  },
 };
