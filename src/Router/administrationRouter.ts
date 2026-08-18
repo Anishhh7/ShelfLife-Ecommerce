@@ -31,7 +31,7 @@ router.get(
 );
 
 router.patch(
-  '/:vendorId',
+  '/:vendorId/approved',
   AuthController.restrictTo(permission.administration.Approval),
   validate(AdministrationValidation.approvedVendorSchema),
   AdministrationController.approvedVendors
@@ -40,7 +40,7 @@ router.patch(
 router.get(
   '/vendors',
   AuthController.restrictTo(permission.administration.ReadVendor),
-  AdministrationController.getAllVendors
+  AdministrationController.getAllApprovedVendors
 );
 
 router

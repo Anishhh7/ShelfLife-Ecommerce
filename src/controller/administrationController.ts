@@ -4,6 +4,7 @@ import AppError from '../utils/AppError';
 import sendResponse from '../utils/sendResponse';
 import prisma from '../config/prisma';
 import { hashPassword, sanitizeUser } from '../utils/authUtils';
+import * as administrationService from '../service/administrationService';
 
 export const createStaff = catchAsync(async (req, res, next) => {
   const { password, passwordConfirm, ...userData } = req.body;
@@ -30,7 +31,7 @@ export const getAllStaff = catchAsync(async (req, res, next) => {
   });
 
   const staffs = staffLists.map(sanitizeUser);
-  sendResponse(res, 200, staffs, { results: staffs.length });
+  sendResponse(res, 200, staffs, { results: staffLists.length });
 });
 
 export const getStaffbyId = catchAsync(async (req, res, next) => {
@@ -86,58 +87,53 @@ export const deleteStaff = catchAsync(async (req, res, next) => {
 
 export const getPendingVendors = catchAsync(
   async (req, res, next) => {
-    const vendor = await prisma.user.findMany({
+    const vendors = await prisma.user.findMany({
       where: {
         role: 'Vendor',
         approved: false,
       },
     });
 
-    sendResponse(res, 200, vendor, { results: vendor.length });
+    const vendorDetail = vendors.map((vendor) =>
+      sanitizeUser(vendor)
+    );
+
+    sendResponse(res, 200, vendorDetail, { results: vendors.length });
   }
 );
 
 export const approvedVendors = catchAsync(async (req, res, next) => {
-  const { approved } = req.body;
-  const vendorId = Number(req.params.id);
+  const { vendorId } = req.params;
 
-  const vendor = await prisma.user.findUnique({
-    where: {
-      id: vendorId,
-    },
-  });
+  const updateVendor = await administrationService.approvedVendors(
+    Number(vendorId)
+  );
 
-  if (!vendor) {
-    return next(new AppError('Invalid vendor id', 404));
-  }
-
-  if (vendor.role !== 'Vendor') {
-    return next(new AppError('User is not a vendor', 400));
-  }
-  if (vendor.approved) {
-    return next(new AppError('Vendor is already approved', 400));
-  }
-
-  const updateVendor = await prisma.user.update({
-    where: {
-      id: vendorId,
-    },
-    data: { approved },
-  });
+  const vendorDetails = sanitizeUser(updateVendor);
 
   sendResponse(
     res,
     200,
-    updateVendor,
+    vendorDetails,
     'Vendor approved successfully'
   );
 });
 
-export const getAllVendors = catchAsync(async (req, res, next) => {
-  const vendor = await prisma.user.findMany({
-    where: {
-      role: 'Vendor',
-      approved: true,
-    },
-  });
-});
+export const getAllApprovedVendors = catchAsync(
+  async (req, res, next) => {
+    const vendors = await prisma.user.findMany({
+      where: {
+        role: 'Vendor',
+        approved: true,
+      },
+    });
+
+    const vendorDetails = vendors.map((vendor) =>
+      sanitizeUser(vendor)
+    );
+
+    sendResponse(res, 200, vendorDetails, {
+      results: vendors.length,
+    });
+  }
+);
