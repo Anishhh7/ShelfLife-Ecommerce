@@ -189,7 +189,7 @@ export const protect = catchAsync(async (req, res, next) => {
 
   if (!token || token === 'null') {
     return next(
-      new AppError('You are not loggd in. Please login', 401)
+      new AppError('You are not logged in. Please login', 401)
     );
   }
 
