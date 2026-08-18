@@ -32,7 +32,7 @@ router.get(
 
 router.patch(
   '/:vendorId',
-  AuthController.restrictTo(permission.administration.Approvval),
+  AuthController.restrictTo(permission.administration.Approval),
   validate(AdministrationValidation.approvedVendorSchema),
   AdministrationController.approvedVendors
 );
