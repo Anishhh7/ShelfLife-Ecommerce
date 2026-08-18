@@ -2,7 +2,7 @@ import catchAsync from '../utils/catchAsync';
 import AppError from '../utils/AppError';
 import sendResponse from '../utils/sendResponse';
 import prisma from '../config/prisma';
-import { Label } from '../generated/prisma/enums';
+import * as addressService from '../service/addressService';
 
 export const createAddress = catchAsync(async (req, res, next) => {
   const userId = Number(req.user?.id);
@@ -11,92 +11,27 @@ export const createAddress = catchAsync(async (req, res, next) => {
     return next(new AppError('Invalid or missing user ID', 400));
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-  });
-
-  if (!user) {
-    return next(new AppError('Invalid user id', 404));
-  }
-
-  const existingAddress = await prisma.address.findFirst({
-    where: {
-      id: userId,
-      label: req.body.label,
-    },
-  });
-
-  if (existingAddress) {
-    return next(
-      new AppError(
-        `You already have a ${req.body.label} address`,
-        400
-      )
-    );
-  }
-
-  const address = await prisma.address.create({
-    data: {
-      userId,
-      fullName: user.name,
-      email: user.email,
-      mobileNumber: user.phone,
-      ...req.body,
-    },
-  });
+  const address = await addressService.createAddress(
+    userId,
+    req.body
+  );
 
   sendResponse(res, 201, address, 'Address created successfully');
 });
 
 export const updateAddress = catchAsync(async (req, res, next) => {
   const userId = Number(req.user?.id);
-  const { addressId } = req.params;
-  const { fullName, email, mobileNumber, ...addressData } = req.body;
+  const addressId = Number(req.params);
 
-  if (!userId) {
+  if (!userId || isNaN(userId)) {
     return next(new AppError('Invalid or missing user ID', 400));
   }
 
-  const addressToUpdate = await prisma.user.findFirst({
-    where: {
-      id: Number(addressId),
-      userId,
-    },
-  });
-
-  if (!addressToUpdate) {
-    return next(
-      new AppError('Address not found or unauthorized', 404)
-    );
-  }
-
-  if (req.body.isDefault === true) {
-    await prisma.address.updateMany({
-      where: {
-        userId,
-        isDefault: true,
-      },
-      data: {
-        isDefault: false,
-      },
-    });
-  }
-
-  const updateAddress = await prisma.address.update({
-    where: {
-      id: Number(addressId),
-    },
-    data: {
-      fullName,
-      email,
-      ...addressData,
-    },
-    select: {
-      country: true,
-    },
-  });
+  const updateAddress = await addressService.updateAddress(
+    userId,
+    addressId,
+    req.body
+  );
 
   sendResponse(
     res,
@@ -114,29 +49,7 @@ export const deleteAddress = catchAsync(async (req, res, next) => {
     return next(new AppError('Invalid user or address ID', 400));
   }
 
-  const address = await prisma.address.findUnique({
-    where: {
-      id: Number(addressId),
-      userId,
-    },
-  });
-
-  if (!address) {
-    return next(new AppError('Address not found', 404));
-  }
-
-  if (address?.isDefault) {
-    return next(
-      new AppError('You can not delete your default address', 400)
-    );
-  }
-
-  await prisma.address.delete({
-    where: {
-      id: Number(addressId),
-    },
-  });
-
+  await addressService.deleteAddress(userId, Number(addressId));
   sendResponse(res, 204, null, 'Address deleted successfully');
 });
 
@@ -148,7 +61,7 @@ export const getAllAddress = catchAsync(async (req, res, next) => {
   }
   const addresses = await prisma.address.findMany({
     where: {
-      id: userId,
+      userId,
     },
   });
 
@@ -164,37 +77,7 @@ export const setDefaultAddress = catchAsync(
       return next(new AppError('Invalid user or address ID', 400));
     }
 
-    const address = await prisma.user.findUnique({
-      where: {
-        id: Number(addressId),
-        userId,
-      },
-    });
-
-    if (!address) {
-      return next(
-        new AppError(
-          'No address found with that ID for this user',
-          404
-        )
-      );
-    }
-
-    await prisma.$transaction([
-      prisma.address.updateMany({
-        where: {
-          id: Number(addressId),
-          isDefault: false,
-        },
-        data: {
-          isDefault: true,
-        },
-      }),
-      prisma.address.update({
-        where: { id: Number(addressId) },
-        data: { isDefault: true },
-      }),
-    ]);
+    await addressService.setDefaultAddress(userId, Number(addressId));
 
     sendResponse(
       res,
@@ -207,7 +90,7 @@ export const setDefaultAddress = catchAsync(
 
 export const getAddressbyId = catchAsync(async (req, res, next) => {
   const userId = Number(req.user?.id);
-  const addressId = Number(req.params);
+  const { addressId } = req.params;
 
   if (!userId || isNaN(userId) || isNaN(Number(addressId))) {
     return next(new AppError('Invalid user or address ID', 400));
@@ -215,7 +98,7 @@ export const getAddressbyId = catchAsync(async (req, res, next) => {
 
   const address = await prisma.address.findUnique({
     where: {
-      id: addressId,
+      id: Number(addressId),
       userId,
     },
   });
