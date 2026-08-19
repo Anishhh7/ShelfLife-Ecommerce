@@ -23,4 +23,10 @@ export default {
     UpdateCategory: Role.Admin,
     DeleteCategory: Role.Admin,
   },
+  product: {
+    CreateProduct: Role.Vendor,
+    UpdateProduct: Role.Vendor,
+    DeleteProduct: Role.Vendor,
+    ReadAllProduct: Role.Vendor,
+  },
 };

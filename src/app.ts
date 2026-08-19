@@ -8,6 +8,7 @@ import authRouter from './Router/authRouter';
 import administrationRouter from './Router/administrationRouter';
 import addressRouter from './Router/addressRouter';
 import categoryRouter from './Router/categoryRouter';
+import productRouter from './Router/productRouter';
 
 const app: Application = express();
 app.set('query parser', 'extended');
@@ -22,6 +23,7 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/administrations', administrationRouter);
 app.use('/api/v1/addresses', addressRouter);
 app.use('/api/v1/categories', categoryRouter);
+app.use('/api/v1/products', productRouter);
 
 app.all(
   '/{*path}',
