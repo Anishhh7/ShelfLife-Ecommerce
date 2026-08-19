@@ -1,5 +1,4 @@
 import { type ParsedQs } from 'qs';
-import { object } from 'zod';
 
 type QueryObject = Record<string, any>;
 
@@ -10,10 +9,12 @@ type PrismaFindManyArgs = {
   skip?: number;
   take?: number;
 };
+
 type FieldTypeMap = Record<
   string,
   'string' | 'number' | 'boolean' | 'date'
 >;
+
 const OPERATOR_MAP: Record<string, string> = {
   gte: 'gte',
   gt: 'gt',
@@ -23,6 +24,7 @@ const OPERATOR_MAP: Record<string, string> = {
 
 class APIFeatures {
   public filterConditions: QueryObject;
+
   constructor(
     public query: PrismaFindManyArgs = {},
     public queryString: ParsedQs,
@@ -31,8 +33,6 @@ class APIFeatures {
     private allowedSelectFields: string[] = [],
     private fieldTypes: FieldTypeMap = {}
   ) {
-    this.query = query;
-    this.queryString = queryString;
     this.filterConditions = {};
   }
 
@@ -42,6 +42,7 @@ class APIFeatures {
     if (type === 'number') return Number(value);
     if (type === 'boolean') return value === 'true';
     if (type === 'date') return new Date(value as string);
+
     return value;
   }
 
@@ -68,29 +69,46 @@ class APIFeatures {
         !Array.isArray(rawValue)
       ) {
         const rangeCondition: QueryObject = {};
+
         Object.entries(rawValue as Record<string, string>).forEach(
           ([op, val]) => {
             const prismaOp = OPERATOR_MAP[op];
+
             if (prismaOp) {
               rangeCondition[prismaOp] = this.coerceValue(key, val);
             }
           }
         );
+
         if (Object.keys(rangeCondition).length > 0) {
           conditions[key] = rangeCondition;
         }
+
         return;
       }
+
+      conditions[key] = this.coerceValue(key, rawValue);
     });
+
+    this.filterConditions = conditions;
+
+    this.query.where = {
+      ...this.query.where,
+      ...conditions,
+    };
+
+    return this;
   }
 
   search(fields: string[]) {
     const searchTerm = this.queryString.search as string;
+
     if (!searchTerm) return this;
 
-    const safeFields = fields.filter((f) =>
-      this.allowedFilterFields.includes(f)
+    const safeFields = fields.filter((field) =>
+      this.allowedFilterFields.includes(field)
     );
+
     if (safeFields.length === 0) return this;
 
     const searchConditions = safeFields.map((field) => ({
@@ -104,6 +122,7 @@ class APIFeatures {
       ...this.query.where,
       OR: searchConditions,
     };
+
     return this;
   }
 
@@ -111,7 +130,10 @@ class APIFeatures {
     const sortParam = this.queryString.sort as string;
 
     if (!sortParam) {
-      this.query.orderBy = { createdAt: 'desc' };
+      this.query.orderBy = {
+        createdAt: 'desc',
+      };
+
       return this;
     }
 
@@ -119,6 +141,7 @@ class APIFeatures {
 
     sortParam.split(',').forEach((rawField) => {
       const isDesc = rawField.startsWith('-');
+
       const field = isDesc ? rawField.substring(1) : rawField;
 
       if (!this.allowedSortFields.includes(field)) return;
@@ -130,6 +153,7 @@ class APIFeatures {
       Object.keys(orderBy).length > 0
         ? orderBy
         : { createdAt: 'desc' };
+
     return this;
   }
 
@@ -149,11 +173,13 @@ class APIFeatures {
     if (Object.keys(select).length > 0) {
       this.query.select = select;
     }
+
     return this;
   }
 
   pagination() {
     const page = Math.max(1, Number(this.queryString.page) || 1);
+
     const limit = Math.min(
       100,
       Math.max(1, Number(this.queryString.limit) || 10)
