@@ -18,4 +18,9 @@ export default {
     DeleteAddress: Role.Customer,
     SetdefaultAddress: Role.Customer,
   },
+  category: {
+    CreateCategory: Role.Admin,
+    UpdateCategory: Role.Admin,
+    DeleteCategory: Role.Admin,
+  },
 };
