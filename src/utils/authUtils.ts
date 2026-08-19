@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
+import ms, { type StringValue } from 'ms';
 import type { User } from '../generated/prisma/client';
 
 export const hashPassword = async (password: string) => {
@@ -41,6 +43,35 @@ export const createResetPasswordOtp = async () => {
     hashedOTP,
     passwordResetOTPExpires,
   };
+};
+
+export const signAccessToken = (id: number): string => {
+  return jwt.sign({ id }, process.env.JWT_SECRET!, {
+    expiresIn: process.env.JWT_EXPIRES_IN as StringValue,
+  });
+};
+
+export const signRefreshToken = (
+  id: number,
+  family: string
+): string => {
+  return jwt.sign({ id, family }, process.env.JWT_REFRESH_SECRET!, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN as StringValue,
+  });
+};
+
+export const hashToken = (token: string) => {
+  return crypto.createHash('sha256').update(token).digest('hex');
+};
+
+export const createRefreshFamily = () => {
+  return crypto.randomUUID();
+};
+
+export const getRefreshTokenExpiration = () => {
+  return new Date(
+    Date.now() + ms(process.env.JWT_REFRESH_EXPIRES_IN as StringValue)
+  );
 };
 
 export const sanitizeUser = <T extends Partial<User>>(user: T) => {

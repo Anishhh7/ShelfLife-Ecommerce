@@ -5,7 +5,7 @@ import catchAsync from '../utils/catchAsync';
 import AppError from '../utils/AppError';
 import { type User } from '../generated/prisma/client';
 import prisma from '../config/prisma';
-import type { CookieOptions } from 'express';
+import { response, type CookieOptions } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import {
   hashPassword,
@@ -15,165 +15,78 @@ import {
 } from '../utils/authUtils';
 import type { Role } from '../generated/prisma/client';
 import { sanitizeUser } from '../utils/authUtils';
-import type { userInfo } from 'os';
+import * as authService from '../service/authService';
 
-const signAccessToken = (id: number): string => {
-  return jwt.sign({ id }, process.env.JWT_SECRET!, {
-    expiresIn: process.env.JWT_EXPIRES_IN as StringValue,
-  });
-};
-
-const signRefreshToken = (id: number, family: string): string => {
-  return jwt.sign({ id, family }, process.env.JWT_REFRESH_SECRET!, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN as StringValue,
-  });
-};
-
-const hashToken = (token: string) => {
-  return crypto.createHash('sha256').update(token).digest('hex');
-};
-
-const createSendToken = async (
-  user: User,
-  statusCode: number,
-  res: Response
+const setAuthCookies = (
+  res: Response,
+  accessToken: string,
+  refreshToken: string,
+  refreshTokenExpires: Date
 ) => {
-  const accessToken = signAccessToken(user.id);
-  const family = crypto.randomUUID();
-  const refreshToken = signRefreshToken(user.id, family);
-  const refreshTokenHash = hashToken(refreshToken);
-
-  const refreshTokenExpires = new Date(
-    Date.now() + ms(process.env.JWT_REFRESH_EXPIRES_IN as StringValue)
-  );
+  const isProduction = process.env.NODE_ENV === 'production';
 
   const accessTokenExpires = new Date(
     Date.now() + ms(process.env.JWT_COOKIE_EXPIRES_IN as StringValue)
   );
 
-  await prisma.user.update({
-    where: {
-      id: user.id,
-    },
-    data: {
-      refreshFamily: family,
-      refreshTokenHash: refreshTokenHash,
-      refreshTokenExpires: refreshTokenExpires,
-    },
-  });
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  const accessCookieOptions: CookieOptions = {
+  res.cookie('jwt', accessToken, {
     expires: accessTokenExpires,
     httpOnly: true,
     secure: isProduction,
     sameSite: 'lax',
-  };
+  });
 
-  const refreshCookieOptions: CookieOptions = {
+  res.cookie('refreshToken', refreshToken, {
     expires: refreshTokenExpires,
     httpOnly: true,
     secure: isProduction,
     sameSite: 'lax',
     path: '/api/v1/users/refresh',
-  };
-
-  res.cookie('jwt', accessToken, accessCookieOptions);
-  res.cookie('refreshToken', refreshToken, refreshCookieOptions);
-
-  const safeuser = sanitizeUser(user);
-
-  res.status(statusCode).json({
-    status: 'success',
-    token: accessToken,
-    data: { user: safeuser },
-  });
-};
-
-const createSendTokenRotated = async (
-  user: User,
-  family: string,
-  res: Response
-) => {
-  const accessToken = signAccessToken(user.id);
-  const refreshToken = signRefreshToken(user.id, family);
-  const refreshTokenHash = hashToken(refreshToken);
-  const refreshTokenExpires = new Date(
-    Date.now() + ms(process.env.JWT_REFRESH_EXPIRES_IN as StringValue)
-  );
-
-  const accessTokenExpires = new Date(
-    Date.now() + ms(process.env.JWT_COOKIE_EXPIRES_IN as StringValue)
-  );
-
-  await prisma.user.update({
-    where: {
-      id: user.id,
-    },
-    data: {
-      refreshTokenExpires: refreshTokenExpires,
-      refreshFamily: family,
-      refreshTokenHash: refreshTokenHash,
-    },
-  });
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  const accessCookieOptions: CookieOptions = {
-    expires: accessTokenExpires,
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-  };
-
-  const refreshCookieOptions: CookieOptions = {
-    expires: refreshTokenExpires,
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    path: '/api/v1/users/refresh',
-  };
-
-  res.cookie('jwt', accessToken, accessCookieOptions);
-  res.cookie('refreshToken', refreshToken, refreshCookieOptions);
-
-  res.status(200).json({
-    status: 'success',
-    token: accessToken,
   });
 };
 
 export const signUp = catchAsync(async (req, res, next) => {
-  const { password, passwordConfirm, ...userData } = req.body;
+  const user = await authService.signUp(req.body);
 
-  if (password !== passwordConfirm) {
-    return next(new AppError('Passwords do not match', 400));
-  }
+  setAuthCookies(
+    res,
+    user.accessToken,
+    user.refreshToken,
+    user.refreshTokenExpires
+  );
 
-  const hashedPassword = await hashPassword(req.body.password);
+  const safeUser = sanitizeUser(user.user);
 
-  const newUser = await prisma.user.create({
-    data: { ...userData, password: hashedPassword },
+  res.status(201).json({
+    status: 'success',
+    token: user.accessToken,
+    data: {
+      user: safeUser,
+    },
   });
-
-  await createSendToken(newUser, 201, res);
 });
 
 export const signin = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
-  const user = await prisma.user.findUnique({
-    where: { email },
+  const result = await authService.signIn(email, password);
+
+  setAuthCookies(
+    res,
+    result.accessToken,
+    result.refreshToken,
+    result.refreshTokenExpires
+  );
+
+  const safeUser = sanitizeUser(result.user);
+
+  res.status(200).json({
+    status: 'success',
+    token: result.accessToken,
+    data: {
+      user: safeUser,
+    },
   });
-
-  if (!user || !(await checkPassword(password, user.password))) {
-    return next(new AppError('Invalid email or password', 401));
-  }
-
-  if (user?.active === false) {
-    return next(new AppError('This id has been deactivated', 403));
-  }
-
-  await createSendToken(user, 200, res);
 });
 
 export const protect = catchAsync(async (req, res, next) => {
