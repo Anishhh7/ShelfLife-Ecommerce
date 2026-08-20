@@ -29,4 +29,11 @@ export default {
     DeleteProduct: Role.Vendor,
     ReadAllProduct: Role.Vendor,
   },
+  cart: {
+    CreateCart:Role.Customer,
+    AddToCart:Role.Customer,
+    RemoveFromCart: Role.Customer,
+    UpdateCart: Role.Customer,
+    RealAll:Role.Customer
+  }
 };
