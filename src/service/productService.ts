@@ -1,6 +1,7 @@
 import prisma from '../config/prisma';
 import AppError from '../utils/AppError';
-import APIFeatures from '../utils/apiFeatures';
+import { productQuery } from '../query/productQuery';
+import type { Prisma } from '../generated/prisma/client';
 
 export const createProduct = async (
   vendorId: number,
@@ -158,24 +159,10 @@ export const deleteProduct = async (
   });
 };
 
-export const getAllActiveProduct = async (
-  queryString: Record<string, any>
+export const getAllActiveProducts = (
+  query: unknown
 ) => {
-  const features = new APIFeatures(
-    {
-      where: {
-        active: true,
-      },
-    },
-    queryString,
-     ['name', 'description']
-  )
-    .filter()
-    .search(['name', 'description'])
-    .sort()
-    .pagination();
-
-  return prisma.product.findMany(features.query);
+  return productQuery.list(query, {active:true});
 };
 
 export const getActiveProductById = async (productId: number) => {
@@ -203,26 +190,13 @@ export const getActiveProductById = async (productId: number) => {
 
 export const getAllVendorProducts = async (
   vendorId: number,
-  queryString: Record<string, any>
+  query: unknown
 ) => {
-  if (!vendorId) {
+  if (!Number.isInteger(vendorId) || vendorId < 0) {
     throw new AppError('Invalid or missing vendor ID', 400);
   }
 
-  const features = new APIFeatures(
-    {
-      where: {
-        vendorId,
-      },
-    },
-    queryString
-  )
-    .filter()
-    .search(['name', 'description'])
-    .sort()
-    .pagination();
-
-  return prisma.product.findMany(features.query);
+  return productQuery.list(query, { vendorId });
 };
 
 export const getVendorProductById = async (
@@ -258,6 +232,9 @@ export const getVendorProductById = async (
     where: {
       vendorId,
       id: productId,
+    },
+    include: {
+      category: true,
     },
   });
 };

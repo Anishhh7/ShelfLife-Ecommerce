@@ -1,5 +1,5 @@
 import catchAsync from '../utils/catchAsync';
-import sendResponse from '../utils/sendResponse';
+import {sendResponse,  sendPage } from '../utils/sendResponse';
 import * as productService from '../service/productService';
 
 export const createProduct = catchAsync(async (req, res, next) => {
@@ -35,11 +35,11 @@ export const deleteProduct = catchAsync(async (req, res, next) => {
 });
 
 export const getAllActiveProducts = catchAsync(async (req, res) => {
-  const products = await productService.getAllActiveProduct(
+  const page = await productService.getAllActiveProducts(
     req.query
   );
 
-  sendResponse(res, 200, products, { results: products.length });
+sendPage(res, 200, page, 'Products fetched Successfully')
 });
 
 export const getAllVendorProduct = catchAsync(async (req, res) => {
@@ -50,9 +50,7 @@ export const getAllVendorProduct = catchAsync(async (req, res) => {
     req.query
   );
 
-  sendResponse(res, 200, products, {
-    results: products.length,
-  });
+  sendPage(res, 200, products);
 });
 
 export const getActiveProductById = catchAsync(
