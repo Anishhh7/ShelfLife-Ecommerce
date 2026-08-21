@@ -1,5 +1,5 @@
 import catchAsync from '../utils/catchAsync';
-import sendResponse from '../utils/sendResponse';
+import { sendPage, sendResponse } from '../utils/sendResponse';
 import prisma from '../config/prisma';
 import * as categoryService from '../service/categoryService';
 import AppError from '../utils/AppError';
@@ -32,9 +32,10 @@ export const deleteCategory = catchAsync(async (req, res) => {
 });
 
 export const getAllCategory = catchAsync(async (req, res, next) => {
-  const category = await prisma.category.findMany({});
-
-  sendResponse(res, 200, category, { results: category.length });
+  const categories = await categoryService.getAllCategories(
+    req.query
+  );
+  sendPage(res, 200, categories);
 });
 
 export const getCategoryById = catchAsync(async (req, res, next) => {
