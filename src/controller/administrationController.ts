@@ -1,7 +1,7 @@
 import { type User } from '../generated/prisma/client';
 import catchAsync from '../utils/catchAsync';
 import AppError from '../utils/AppError';
-import sendResponse from '../utils/sendResponse';
+import { sendPage, sendResponse } from '../utils/sendResponse';
 import prisma from '../config/prisma';
 import { hashPassword, sanitizeUser } from '../utils/authUtils';
 import * as administrationService from '../service/administrationService';
@@ -24,14 +24,11 @@ export const createStaff = catchAsync(async (req, res, next) => {
 });
 
 export const getAllStaff = catchAsync(async (req, res, next) => {
-  const staffLists = await prisma.user.findMany({
-    where: {
-      role: 'Staff',
-    },
-  });
+  const staffs = await administrationService.getAllAdministration(
+    req.query
+  );
 
-  const staffs = staffLists.map(sanitizeUser);
-  sendResponse(res, 200, staffs, { results: staffLists.length });
+  sendPage(res, 200, staffs);
 });
 
 export const getStaffbyId = catchAsync(async (req, res, next) => {
@@ -87,18 +84,11 @@ export const deleteStaff = catchAsync(async (req, res, next) => {
 
 export const getPendingVendors = catchAsync(
   async (req, res, next) => {
-    const vendors = await prisma.user.findMany({
-      where: {
-        role: 'Vendor',
-        approved: false,
-      },
-    });
-
-    const vendorDetail = vendors.map((vendor) =>
-      sanitizeUser(vendor)
+    const vendors = await administrationService.getAllPendingVendors(
+      req.query
     );
 
-    sendResponse(res, 200, vendorDetail, { results: vendors.length });
+    sendPage(res, 200, vendors);
   }
 );
 
@@ -121,19 +111,10 @@ export const approvedVendors = catchAsync(async (req, res, next) => {
 
 export const getAllApprovedVendors = catchAsync(
   async (req, res, next) => {
-    const vendors = await prisma.user.findMany({
-      where: {
-        role: 'Vendor',
-        approved: true,
-      },
-    });
-
-    const vendorDetails = vendors.map((vendor) =>
-      sanitizeUser(vendor)
+    const vendors = await administrationService.getAllVendors(
+      req.query
     );
 
-    sendResponse(res, 200, vendorDetails, {
-      results: vendors.length,
-    });
+    sendPage(res, 200, vendors);
   }
 );
