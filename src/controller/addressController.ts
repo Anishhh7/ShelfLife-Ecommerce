@@ -1,6 +1,6 @@
 import catchAsync from '../utils/catchAsync';
 import AppError from '../utils/AppError';
-import sendResponse from '../utils/sendResponse';
+import {sendResponse} from '../utils/sendResponse';
 import prisma from '../config/prisma';
 import * as addressService from '../service/addressService';
 

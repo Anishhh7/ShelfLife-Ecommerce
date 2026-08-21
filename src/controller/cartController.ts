@@ -1,5 +1,5 @@
 import catchAsync from '../utils/catchAsync';
-import sendResponse from '../utils/sendResponse';
+import {sendResponse} from '../utils/sendResponse';
 import * as cartService from '../service/cartService';
 import prisma from '../config/prisma';
 
@@ -79,5 +79,5 @@ export const getCart = catchAsync(async (req, res, next) => {
     },
   });
 
-  sendResponse(res, 200, cart, { results: cart.length });
+  sendResponse(res, 200, cart);
 });
