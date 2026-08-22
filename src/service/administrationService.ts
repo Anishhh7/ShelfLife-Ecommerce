@@ -1,4 +1,4 @@
-import prisma from '../config/prisma';
+import prisma from '../lib/prisma';
 import AppError from '../utils/AppError';
 import { userQuery } from '../query/userQuery';
 
@@ -33,7 +33,7 @@ export const approvedVendors = async (vendorId: number) => {
 };
 
 export const getAllAdministration = async (query: unknown) => {
-  return userQuery.list( query, {role:'Staff'}  );
+  return userQuery.list(query, { role: 'Staff' });
 };
 
 export const getAllVendors = async (query: unknown) => {
@@ -41,4 +41,7 @@ export const getAllVendors = async (query: unknown) => {
 };
 export const getAllPendingVendors = async (query: unknown) => {
   return userQuery.list(query, { role: 'Vendor', approved: false });
+};
+export const getAllCustomers = async (query: unknown) => {
+  return userQuery.list(query, { role: 'Customer' });
 };

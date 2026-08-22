@@ -2,7 +2,7 @@ import { type User } from '../generated/prisma/client';
 import catchAsync from '../utils/catchAsync';
 import AppError from '../utils/AppError';
 import { sendPage, sendResponse } from '../utils/sendResponse';
-import prisma from '../config/prisma';
+import prisma from '../lib/prisma';
 import { hashPassword, sanitizeUser } from '../utils/authUtils';
 import * as administrationService from '../service/administrationService';
 
@@ -118,3 +118,52 @@ export const getAllApprovedVendors = catchAsync(
     sendPage(res, 200, vendors);
   }
 );
+
+export const getAllCustomers = catchAsync(async (req, res) => {
+  const customers = await administrationService.getAllCustomers(
+    req.query
+  );
+
+  sendPage(res, 200, customers);
+});
+
+export const deleteCustomers = catchAsync(async (req, res, next) => {
+  const { customerIds } = req.body;
+
+  if (!Array.isArray(customerIds) || customerIds.length === 0) {
+    return next(new AppError('Customer IDs are required', 400));
+  }
+
+  const customers = await prisma.user.findMany({
+    where: {
+      id: { in: customerIds },
+      role: 'Customer',
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (customers.length === 0) {
+    return next(new AppError('No valid customers found', 404));
+  }
+
+  const validCustomerIds = customers.map((customer) => customer.id);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.address.deleteMany({
+      where: {
+        userId: { in: validCustomerIds },
+      },
+    });
+
+    await tx.user.deleteMany({
+      where: {
+        id: { in: validCustomerIds },
+        role: 'Customer',
+      },
+    });
+  });
+
+  sendResponse(res, 204, null);
+});

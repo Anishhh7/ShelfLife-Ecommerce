@@ -23,6 +23,14 @@ router.post(
 );
 
 router.get(
+  '/customers',
+  AuthController.restrictTo(
+    permission.administration.ReadAllCustomers
+  ),
+  AdministrationController.getAllCustomers
+);
+
+router.get(
   '/pending-vendors',
   AuthController.restrictTo(
     permission.administration.ReadPendingVendors
@@ -42,6 +50,8 @@ router.get(
   AuthController.restrictTo(permission.administration.ReadVendor),
   AdministrationController.getAllApprovedVendors
 );
+
+router.delete('/customers/delete', AdministrationController.deleteCustomers)
 
 router
   .route('/:id')
