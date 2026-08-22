@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import app from './app';
 import type { Server } from 'node:http';
-import prisma from './config/prisma';
+import prisma from './lib/prisma';
 
 /////////Catch Sychronous errors////////////////////
 let server: Server;

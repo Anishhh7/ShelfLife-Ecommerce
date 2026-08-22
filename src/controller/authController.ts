@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import catchAsync from '../utils/catchAsync';
 import AppError from '../utils/AppError';
 import { type User } from '../generated/prisma/client';
-import prisma from '../config/prisma';
+import prisma from '../lib/prisma';
 import { response, type CookieOptions } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import {

@@ -1,7 +1,7 @@
 import catchAsync from '../utils/catchAsync';
-import {sendResponse} from '../utils/sendResponse';
+import { sendResponse } from '../utils/sendResponse';
 import * as cartService from '../service/cartService';
-import prisma from '../config/prisma';
+import prisma from '../lib/prisma';
 
 export const addToCart = catchAsync(async (req, res, next) => {
   const { productId, quantity } = req.body;
@@ -33,7 +33,7 @@ export const addToCart = catchAsync(async (req, res, next) => {
 export const updateCart = catchAsync(async (req, res, next) => {
   const { quantity } = req.body;
   const userId = Number(req.user?.id);
-  const {itemId}= req.params
+  const { itemId } = req.params;
 
   const cart = await cartService.updateCartItem(
     userId,

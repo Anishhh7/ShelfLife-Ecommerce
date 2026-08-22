@@ -1,4 +1,4 @@
-import prisma from '../config/prisma';
+import prisma from '../lib/prisma';
 import AppError from '../utils/AppError';
 
 export const addToCart = async (
@@ -152,9 +152,7 @@ export const updateCartItem = async (
     );
   }
 
-  const item = cart.items.find(
-    (item) => item.id === itemId
-  );
+  const item = cart.items.find((item) => item.id === itemId);
 
   if (!item) {
     throw new AppError('Product not found', 400);
@@ -195,7 +193,7 @@ export const removeItemsFromCart = async (
 ) => {
   const user = await prisma.user.findUnique({
     where: {
-       id:userId
+      id: userId,
     },
   });
 
@@ -205,7 +203,7 @@ export const removeItemsFromCart = async (
 
   const cart = await prisma.cart.findFirst({
     where: {
-       userId,
+      userId,
     },
     include: {
       items: {

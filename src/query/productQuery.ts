@@ -6,7 +6,7 @@ import {
   sortSchema,
   type OrderByTable,
 } from '../utils/query.js';
-import prisma from '../config/prisma.js';
+import prisma from '../lib/prisma.js';
 import { Prisma } from '../generated/prisma/client.js';
 
 const productOrderBy: OrderByTable<Prisma.ProductOrderByWithRelationInput> =

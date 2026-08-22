@@ -1,5 +1,5 @@
 import AppError from '../utils/AppError';
-import prisma from '../config/prisma';
+import prisma from '../lib/prisma';
 import { categoryQuery } from '../query/categoryQuery';
 
 export const createCategory = async (categoryData: any) => {
@@ -90,9 +90,6 @@ export const getCategoryById = async (categoryId: number) => {
   return category;
 };
 
-
-export const getAllCategories = async (
-  query: unknown
-) => {
+export const getAllCategories = async (query: unknown) => {
   return categoryQuery.list(query, {});
-}
+};

@@ -1,4 +1,4 @@
-import prisma from '../config/prisma';
+import prisma from '../lib/prisma';
 import AppError from '../utils/AppError';
 import {
   hashPassword,
@@ -9,7 +9,6 @@ import {
   createRefreshFamily,
   getRefreshTokenExpiration,
 } from '../utils/authUtils';
-
 
 export const createAuthentication = async (user: any) => {
   const accessToken = signAccessToken(user.id);
@@ -30,14 +29,13 @@ export const createAuthentication = async (user: any) => {
       refreshTokenExpires,
     },
   });
-    return {
-        user,
+  return {
+    user,
     accessToken,
     refreshToken,
     refreshTokenExpires,
   };
 };
-
 
 export const signUp = async (userData: any) => {
   const { password, passwordConfirm, ...data } = userData;
@@ -57,7 +55,7 @@ export const signUp = async (userData: any) => {
   return createAuthentication(user);
 };
 
-export const signIn = async (email:string, password:string) => {
+export const signIn = async (email: string, password: string) => {
   const user = await prisma.user.findUnique({
     where: {
       email,

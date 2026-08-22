@@ -1,7 +1,7 @@
 import catchAsync from '../utils/catchAsync';
 import AppError from '../utils/AppError';
-import {sendResponse} from '../utils/sendResponse';
-import prisma from '../config/prisma';
+import { sendResponse } from '../utils/sendResponse';
+import prisma from '../lib/prisma';
 import * as addressService from '../service/addressService';
 
 export const createAddress = catchAsync(async (req, res, next) => {

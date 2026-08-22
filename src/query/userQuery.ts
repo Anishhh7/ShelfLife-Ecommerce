@@ -4,7 +4,7 @@ import {
   sortSchema,
   type OrderByTable,
 } from '../utils/query';
-import prisma from '../config/prisma';
+import prisma from '../lib/prisma';
 import { Prisma } from '../generated/prisma/client';
 
 type UserScope = {
@@ -59,7 +59,7 @@ export const userQuery = createQuery({
           approved: scope.approved,
         }
       : {}),
-    
+
     ...(input.search
       ? {
           OR: [

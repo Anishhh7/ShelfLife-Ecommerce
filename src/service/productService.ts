@@ -1,4 +1,4 @@
-import prisma from '../config/prisma';
+import prisma from '../lib/prisma';
 import AppError from '../utils/AppError';
 import { productQuery } from '../query/productQuery';
 import type { Prisma } from '../generated/prisma/client';
@@ -159,10 +159,8 @@ export const deleteProduct = async (
   });
 };
 
-export const getAllActiveProducts = (
-  query: unknown
-) => {
-  return productQuery.list(query, {active:true});
+export const getAllActiveProducts = (query: unknown) => {
+  return productQuery.list(query, { active: true });
 };
 
 export const getActiveProductById = async (productId: number) => {
