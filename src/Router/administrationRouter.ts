@@ -51,7 +51,26 @@ router.get(
   AdministrationController.getAllApprovedVendors
 );
 
-router.delete('/customers/delete', AdministrationController.deleteCustomers)
+router.delete(
+  '/customers',
+  AuthController.restrictTo(permission.administration.DeleteCustomer),
+  validate(AdministrationValidation.deleteUsersSchema),
+  AdministrationController.deleteCustomers
+);
+
+router.delete(
+  '/vendors',
+  AuthController.restrictTo(permission.administration.DeleteVendor),
+  validate(AdministrationValidation.deleteUsersSchema),
+  AdministrationController.deleteVendors
+);
+
+router.delete(
+  '/staff',
+  AuthController.restrictTo(permission.administration.DeleteStaff),
+  validate(AdministrationValidation.deleteUsersSchema),
+  AdministrationController.deleteStaff
+);
 
 router
   .route('/:id')
@@ -64,9 +83,5 @@ router
     validate(AdministrationValidation.updateStaffSchema),
     AdministrationController.updateStaff
   )
-  .delete(
-    AuthController.restrictTo(permission.administration.DeleteStaff),
-    AdministrationController.deleteStaff
-  );
 
 export default router;

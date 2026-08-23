@@ -30,7 +30,7 @@ export const createStaffSchema = z
     role: z.literal('Staff').default('Staff'),
   })
   .refine((data) => data.password === data.passwordConfirm, {
-    message: 'Password doesnot match',
+    message: 'Password does not match',
     path: ['passwordConfirm'],
   });
 
@@ -43,4 +43,8 @@ export const updateStaffSchema = z.object({
 
 export const approvedVendorSchema = z.object({
   approved: z.boolean(),
+});
+
+export const deleteUsersSchema = z.object({
+  ids: z.array(z.coerce.number().int().positive()).min(1).max(100),
 });

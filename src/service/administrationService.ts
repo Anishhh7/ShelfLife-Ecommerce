@@ -1,6 +1,7 @@
 import prisma from '../lib/prisma';
 import AppError from '../utils/AppError';
 import { userQuery } from '../query/userQuery';
+import type { Role } from '../generated/prisma/enums';
 
 export const approvedVendors = async (vendorId: number) => {
   const vendor = await prisma.user.findUnique({
@@ -44,4 +45,31 @@ export const getAllPendingVendors = async (query: unknown) => {
 };
 export const getAllCustomers = async (query: unknown) => {
   return userQuery.list(query, { role: 'Customer' });
+};
+
+export const deleteUserByRole = async (role: Role, ids: number[]) => {
+  return prisma.$transaction(async (tx) => {
+    const users = await tx.user.findMany({
+      where: { id: { in: ids }, role },
+      select: { id: true },
+    });
+
+    if (users.length !== ids.length) {
+      const found = new Set(users.map((user) => user.id));
+      throw (
+        new AppError(
+          `Some ${role.toLocaleLowerCase}s were not found`,
+          404
+        ),
+        {
+          missing: ids.filter((id) => !found.has(id)),
+        }
+      );
+    }
+
+    const validIds = users.map((user) => user.id);
+    await tx.user.deleteMany({ where: { id: { in: validIds }, role } })
+    
+    return validIds
+  });
 };

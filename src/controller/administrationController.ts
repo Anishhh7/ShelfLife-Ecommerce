@@ -1,10 +1,11 @@
-import { type User } from '../generated/prisma/client';
+import { Role, type User } from '../generated/prisma/client';
 import catchAsync from '../utils/catchAsync';
 import AppError from '../utils/AppError';
 import { sendPage, sendResponse } from '../utils/sendResponse';
 import prisma from '../lib/prisma';
 import { hashPassword, sanitizeUser } from '../utils/authUtils';
 import * as administrationService from '../service/administrationService';
+import { logger } from '../lib/logger';
 
 export const createStaff = catchAsync(async (req, res, next) => {
   const { password, passwordConfirm, ...userData } = req.body;
@@ -23,7 +24,7 @@ export const createStaff = catchAsync(async (req, res, next) => {
   sendResponse(res, 200, safeStaff, 'Staff created successfully');
 });
 
-export const getAllStaff = catchAsync(async (req, res, next) => {
+export const getAllStaff = catchAsync(async (req, res, _next) => {
   const staffs = await administrationService.getAllAdministration(
     req.query
   );
@@ -68,19 +69,6 @@ export const updateStaff = catchAsync(async (req, res, next) => {
   sendResponse(res, 200, staff, 'Staff Updated Successfully');
 });
 
-export const deleteStaff = catchAsync(async (req, res, next) => {
-  const staffId = Number(req.params.id);
-
-  if (!staffId) {
-    return next(new AppError('Invalid staff id', 400));
-  }
-  const staff = await prisma.user.delete({
-    where: {
-      id: staffId,
-    },
-  });
-  sendResponse(res, 204, null, 'Staff deleted successfully');
-});
 
 export const getPendingVendors = catchAsync(
   async (req, res, next) => {
@@ -93,18 +81,20 @@ export const getPendingVendors = catchAsync(
 );
 
 export const approvedVendors = catchAsync(async (req, res, next) => {
-  const { vendorId } = req.params;
+  const vendorId = Number(req.params.vendorId);
 
-  const updateVendor = await administrationService.approvedVendors(
-    Number(vendorId)
+  const updateVendor =
+    await administrationService.approvedVendors(vendorId);
+
+  logger.info(
+    { vendorId, approvedBy: req.user?.id },
+    'Vendor Approved'
   );
-
-  const vendorDetails = sanitizeUser(updateVendor);
 
   sendResponse(
     res,
     200,
-    vendorDetails,
+    sanitizeUser(updateVendor),
     'Vendor approved successfully'
   );
 });
@@ -127,43 +117,25 @@ export const getAllCustomers = catchAsync(async (req, res) => {
   sendPage(res, 200, customers);
 });
 
-export const deleteCustomers = catchAsync(async (req, res, next) => {
-  const { customerIds } = req.body;
+const makeDeleteUser = (role: Role) =>
+  catchAsync(async (req, res, next) => {
+    const ids = [...new Set<number>(req.body.ids)];
 
-  if (!Array.isArray(customerIds) || customerIds.length === 0) {
-    return next(new AppError('Customer IDs are required', 400));
-  }
+    if (req.user && ids.includes(req.user.id)) {
+      throw new AppError('You cannot delete your own account', 400);
+    }
+    const deletedIds = await administrationService.deleteUserByRole(
+      role,
+      ids
+    );
+    logger.warn(
+      { role, deletedIds, deletedBy: req.user?.id },
+      'users deleted'
+    );
 
-  const customers = await prisma.user.findMany({
-    where: {
-      id: { in: customerIds },
-      role: 'Customer',
-    },
-    select: {
-      id: true,
-    },
+    res.sendStatus(204);
   });
 
-  if (customers.length === 0) {
-    return next(new AppError('No valid customers found', 404));
-  }
-
-  const validCustomerIds = customers.map((customer) => customer.id);
-
-  await prisma.$transaction(async (tx) => {
-    await tx.address.deleteMany({
-      where: {
-        userId: { in: validCustomerIds },
-      },
-    });
-
-    await tx.user.deleteMany({
-      where: {
-        id: { in: validCustomerIds },
-        role: 'Customer',
-      },
-    });
-  });
-
-  sendResponse(res, 204, null);
-});
+export const deleteCustomers = makeDeleteUser('Customer');
+export const deleteVendors = makeDeleteUser('Vendor');
+export const deleteStaff = makeDeleteUser('Staff');

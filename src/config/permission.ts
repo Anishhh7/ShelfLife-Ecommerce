@@ -6,6 +6,8 @@ export default {
     ReadAllStaff: Role.Admin,
     UpdateStaff: Role.Admin,
     DeleteStaff: Role.Admin,
+    DeleteCustomer: Role.Admin,
+    DeleteVendor: Role.Admin,
     Approval: Role.Admin,
     ReadPendingVendors: Role.Admin,
     ReadAllCustomers:Role.Admin,
