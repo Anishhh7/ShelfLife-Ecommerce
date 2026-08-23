@@ -2,7 +2,6 @@
 {
   "compilerOptions": {
     // File Layout
-    "rootDir": "./src",
     "outDir": "./dist",
 
     // Environment Settings
@@ -13,7 +12,6 @@
     "lib": ["esnext"],
     "moduleResolution": "bundler",
     // and npm install -D @types/node
-
     // Other Outputs
     "sourceMap": true,
     "declaration": true,
@@ -43,9 +41,6 @@
   "include": ["src/**/*", "prisma.config.ts"],
   "exclude": [
     "node_modules",
-    "dist",
-    "prisma.config.ts",
-    "tscongig.json",
-    "prisma.config.ts"
+    "dist"
   ]
 }
