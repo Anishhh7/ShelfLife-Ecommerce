@@ -32,7 +32,7 @@ app.all(
   (req: Request, res: Response, next: NextFunction) => {
     next(
       new AppError(
-        `Can't find ${req.originalUrl} on this server`,
+        `Route ${req.method} ${req.originalUrl} does not exist`,
         404
       )
     );
