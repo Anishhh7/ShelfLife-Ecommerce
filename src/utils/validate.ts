@@ -1,21 +1,18 @@
 import type { Request, Response, NextFunction } from 'express';
-import type { ZodSchema } from 'zod';
+import type { ZodType } from 'zod';
 import AppError from './AppError';
 
 export const validate = (
-  schema: ZodSchema,
+  schema: ZodType,
   source: 'body' | 'params' | 'query' = 'body'
 ) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    let data;
-
-    if (source === 'body') {
-      data = req.body;
-    } else if (source === 'params') {
-      data = req.params;
-    } else {
-      data = req.query;
-    }
+  return (req: Request, _res: Response, next: NextFunction) => {
+    const data =
+      source === 'body'
+        ? req.body
+        : source === 'params'
+          ? req.params
+          : req.query;
 
     const result = schema.safeParse(data);
 
@@ -26,18 +23,18 @@ export const validate = (
       }));
 
       return next(
-        new AppError('Validation failed', 400, formattedErrors)
+        new AppError('Validation failed', 422, formattedErrors)
       );
     }
 
     if (source === 'body') {
       result.data = req.body;
-    } else if (source === 'params') {
-      result.data = req.params;
     } else {
-      result.data = req.query;
+      Object.assign(
+        source === 'params' ? req.params : req.query,
+        result.data
+      );
     }
-
     next();
   };
 };
