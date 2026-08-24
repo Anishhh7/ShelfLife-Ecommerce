@@ -10,7 +10,7 @@ export default {
     DeleteVendor: Role.Admin,
     Approval: Role.Admin,
     ReadPendingVendors: Role.Admin,
-    ReadAllCustomers:Role.Admin,
+    ReadAllCustomers: Role.Admin,
     ReadVendor: Role.Admin,
   },
 
@@ -33,10 +33,14 @@ export default {
     ReadAllProduct: Role.Vendor,
   },
   cart: {
-    CreateCart:Role.Customer,
-    AddToCart:Role.Customer,
+    CreateCart: Role.Customer,
+    AddToCart: Role.Customer,
     RemoveFromCart: Role.Customer,
     UpdateCart: Role.Customer,
-    RealAll:Role.Customer
+    RealAll: Role.Customer,
+  },
+
+  order: {
+    PlaceOrder: Role.Customer,
   }
 };
