@@ -1,4 +1,5 @@
-import { email, z } from 'zod';
+import { z } from 'zod';
+import { Role } from '../generated/prisma/enums';
 
 const nameSchema = z
   .string()
@@ -12,9 +13,8 @@ const phoneSchema = z
   .regex(/^\+?[1-9]\d{7,14}$/, 'Please provide a valid phone number');
 
 const emailSchema = z
-  .string()
-  .trim()
-  .email('Please provide a valid email address');
+  .email('Please provide a valid email address')
+  .trim();
 
 export const createStaffSchema = z
   .object({
@@ -27,7 +27,6 @@ export const createStaffSchema = z
       .min(4, 'Password must be at least 4 characters')
       .max(8),
     passwordConfirm: z.string(),
-    role: z.literal('Staff').default('Staff'),
   })
   .refine((data) => data.password === data.passwordConfirm, {
     message: 'Password does not match',

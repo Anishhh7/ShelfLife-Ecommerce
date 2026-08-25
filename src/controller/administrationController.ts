@@ -16,6 +16,7 @@ export const createStaff = catchAsync(async (req, res, next) => {
     data: {
       ...userData,
       password: hashedPassword,
+      role: Role.Staff
     },
   });
 
