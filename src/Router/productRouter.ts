@@ -1,0 +1,45 @@
+import express from 'express';
+import permission from '../config/permission';
+import { validate } from '../utils/validate';
+import * as AuthController from '../controller/authController';
+import * as ProductController from '../controller/productController';
+import * as ValidationProduct from '../validation/productValidation';
+
+const router = express.Router();
+
+router.get('/', ProductController.getAllActiveProducts);
+router.get('/:productId', ProductController.getActiveProductById);
+
+router.use(AuthController.protect);
+
+router.post(
+  '/',
+  AuthController.restrictTo(permission.product.CreateProduct),
+  validate(ValidationProduct.createProductSchema),
+  ProductController.createProduct
+);
+
+router.get(
+  '/vendors/myProducts',
+  AuthController.restrictTo(permission.product.ReadAllProduct),
+  ProductController.getAllVendorProduct
+);
+
+router
+  .route('/:productId')
+  .patch(
+    AuthController.restrictTo(permission.product.UpdateProduct),
+    validate(ValidationProduct.updateProductSchema),
+    ProductController.updateProduct
+  )
+  .delete(
+    AuthController.restrictTo(permission.product.DeleteProduct),
+    ProductController.deleteProduct
+  );
+
+router.get(
+  '/vendors/myProducts/:productId',
+  AuthController.restrictTo(permission.product.ReadAllProduct),
+  ProductController.getVendorProductById
+);
+export default router;
