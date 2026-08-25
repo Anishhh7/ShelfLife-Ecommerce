@@ -7,6 +7,12 @@ import { logger } from '../lib/logger';
 /* ─────────────── converters: library error → AppError ─────────────── */
 
 const handleZodError = (err: ZodError): AppError => {
+  logger.warn(
+    {
+      issues: err.issues,
+    },
+    'Validation failed'
+  );
   const errors = err.issues.map((issue) => ({
     field: issue.path.join('.') || '(root)',
     message: issue.message,
@@ -18,6 +24,14 @@ const handleZodError = (err: ZodError): AppError => {
 const handlePrismaKnownError = (
   err: Prisma.PrismaClientKnownRequestError
 ): AppError => {
+  logger.error(
+    {
+      code: err.code,
+      meta: err.meta,
+      message: err.message,
+    },
+    'Prisma known error'
+  );
   switch (err.code) {
     case 'P2002': {
       const target = err.meta?.target;
@@ -72,6 +86,15 @@ const handlePrismaKnownError = (
 
     case 'P2021': // table does not exist
     case 'P2022': // column does not exist
+      logger.error(
+        {
+          code: err.code,
+          meta: err.meta,
+          message: err.message,
+        },
+        'Prisma schema mismatch error'
+      );
+
       // Migrations did not run. Our bug, not the client's.
       return new AppError(
         'Database schema error.',
@@ -91,23 +114,40 @@ const handlePrismaKnownError = (
   }
 };
 
-const handlePrismaValidationError = (): AppError =>
-  // Wrong arguments passed to a Prisma query — usually a developer bug,
-  // returned as 400 so the client does not retry it forever.
-  new AppError(
+const handlePrismaValidationError = (err: any): AppError => {
+  logger.error(
+    {
+      prisma: true,
+      operation: err.message.match(/prisma\.\w+\.\w+/)?.[0],
+      details: err.message.split('\n').slice(0, 8).join('\n'),
+    },
+    'Database query validation failed'
+  );
+
+  return new AppError(
     'Invalid data sent to the database query.',
     400,
     undefined,
     false
   );
+};
 
-const handlePrismaInitError = (): AppError =>
-  new AppError(
+const handlePrismaInitError = (err: Error): AppError => {
+  logger.error(
+    {
+      message: err.message,
+      stack: err.stack,
+    },
+    'Prisma initialization error'
+  );
+
+  return new AppError(
     'Database is unavailable, please try again.',
     503,
     undefined,
     false
   );
+};
 
 /* ─────────────── normalizer: anything → AppError ─────────────── */
 
@@ -120,10 +160,10 @@ const toAppError = (err: any): AppError => {
     return handlePrismaKnownError(err);
 
   if (err instanceof Prisma.PrismaClientValidationError)
-    return handlePrismaValidationError();
+    return handlePrismaValidationError(err);
 
   if (err instanceof Prisma.PrismaClientInitializationError)
-    return handlePrismaInitError();
+    return handlePrismaInitError(err);
 
   // express.json() failures — these are thrown before your code runs
   if (err instanceof SyntaxError && 'body' in err)
@@ -174,10 +214,18 @@ const sendErrorProd = (err: AppError, res: Response): void => {
     return;
   }
 
+  logger.error(
+    {
+      message: err.message,
+      stack: err.stack,
+    },
+    'Unexpected server error'
+  );
+
   // Programming / unknown error: never leak details.
   res.status(500).json({
     status: 'error',
-    message: 'Something went very wrong',
+    message: 'Something went very wrong. Please try again later',
   });
 };
 
@@ -198,11 +246,12 @@ export default (
     statusCode: error.statusCode,
     isOperational: error.isOperational,
     ip: req.ip,
+    stack: error.stack,
   };
 
   if (error.statusCode >= 500)
     logger.error({ ...meta, err }, error.message);
-  else logger.warn(meta, error.message);
+  else logger.warn(meta, error.message, error.stack);
 
   // Response already started streaming — we cannot change the status code.
   if (res.headersSent) {
