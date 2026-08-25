@@ -255,7 +255,7 @@ export const updateVendorItemStatus = catchAsync(
       return next(new AppError('No order found with that ID', 404));
     }
 
-    const item = order.items.id(req.params.itemId);
+    expo
 
     if (!item || item.vendor.toString() !== req.user.id) {
       return next(

@@ -42,5 +42,12 @@ export default {
 
   order: {
     PlaceOrder: Role.Customer,
-  }
+    CancelOrder: [Role.Admin, Role.Customer],
+    TrackOrder: [Role.Admin, Role.Customer],
+    UpdateVendorStatus: Role.Vendor,
+    UpdateAdminStatus: [Role.Admin, Role.Staff],
+    ReadMyOrders: Role.Customer,
+    ReadVendorOrders: Role.Vendor,
+    ReadAll: [Role.Admin, Role.Staff],
+  },
 };
