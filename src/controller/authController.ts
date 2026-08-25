@@ -13,7 +13,7 @@ import {
   checkChangedPassword,
   createResetPasswordOtp,
 } from '../utils/authUtils';
-import type { Role } from '../generated/prisma/client';
+import { Role } from '../generated/prisma/client';
 import { sanitizeUser } from '../utils/authUtils';
 import * as authService from '../service/authService';
 
@@ -146,7 +146,7 @@ export const restrictTo = (...roles: Role[]) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return next(new AppError('Permission denied', 403));
     }
-    if (req.user.role === 'Vendor' && req.user.approved === false) {
+    if (req.user.role === Role.Vendor && req.user.approved === false) {
       return next(new AppError('You are not verified yet', 403));
     }
     next();
