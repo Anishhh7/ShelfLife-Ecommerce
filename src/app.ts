@@ -13,6 +13,7 @@ import productRouter from './Router/productRouter';
 import cartRouter from './Router/cartRouter';
 import orderRouter from './Router/orderRouter';
 import reviewRouter from './Router/reviewRouter';
+import wishlistRouter from './Router/wishlistRouter';
 
 const app: Application = express();
 app.set('query parser', 'extended');
@@ -38,6 +39,7 @@ app.use('/api/v1/products', productRouter);
 app.use('/api/v1/carts', cartRouter);
 app.use('/api/v1/orders', orderRouter);
 app.use('/api/v1/reviews', reviewRouter);
+app.use('/api/v1/wishlists', wishlistRouter);
 
 app.all(
   '/{*path}',
