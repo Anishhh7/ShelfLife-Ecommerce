@@ -4,8 +4,11 @@ import { validate } from '../utils/validate';
 import * as AuthController from '../controller/authController';
 import * as ProductController from '../controller/productController';
 import * as ValidationProduct from '../validation/productValidation';
+import reviewRouter from './reviewRouter';
 
 const router = express.Router();
+
+router.use('/:productId/reviews', reviewRouter);
 
 router.get('/', ProductController.getAllActiveProducts);
 router.get('/:productId', ProductController.getActiveProductById);

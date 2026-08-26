@@ -50,4 +50,9 @@ export default {
     ReadVendorOrders: Role.Vendor,
     ReadAll: [Role.Admin, Role.Staff],
   },
+  review: {
+    CreateReview: Role.Customer,
+    DeleteReview: Role.Admin,
+    GetAllMyReview: Role.Customer,
+  }
 };

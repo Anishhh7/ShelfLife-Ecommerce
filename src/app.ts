@@ -12,6 +12,7 @@ import categoryRouter from './Router/categoryRouter';
 import productRouter from './Router/productRouter';
 import cartRouter from './Router/cartRouter';
 import orderRouter from './Router/orderRouter';
+import reviewRouter from './Router/reviewRouter';
 
 const app: Application = express();
 app.set('query parser', 'extended');
@@ -36,6 +37,7 @@ app.use('/api/v1/categories', categoryRouter);
 app.use('/api/v1/products', productRouter);
 app.use('/api/v1/carts', cartRouter);
 app.use('/api/v1/orders', orderRouter);
+app.use('/api/v1/reviews', reviewRouter);
 
 app.all(
   '/{*path}',
