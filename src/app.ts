@@ -14,6 +14,8 @@ import cartRouter from './Router/cartRouter';
 import orderRouter from './Router/orderRouter';
 import reviewRouter from './Router/reviewRouter';
 import wishlistRouter from './Router/wishlistRouter';
+import './config/redis';
+import './queue/email.worker'
 
 const app: Application = express();
 app.set('query parser', 'extended');
