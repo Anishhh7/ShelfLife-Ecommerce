@@ -1,4 +1,6 @@
+import { Role } from '../generated/prisma/enums';
 import prisma from '../lib/prisma';
+import emailQueue from '../queue/email.queue';
 import AppError from '../utils/AppError';
 import {
   hashPassword,
@@ -9,6 +11,10 @@ import {
   createRefreshFamily,
   getRefreshTokenExpiration,
 } from '../utils/authUtils';
+import {
+  customerWelcomeEmail,
+  vendorWelcomeEmail,
+} from '../utils/emailTemplates';
 
 export const createAuthentication = async (user: any) => {
   const accessToken = signAccessToken(user.id);
@@ -51,6 +57,16 @@ export const signUp = async (userData: any) => {
       ...data,
       password: hashedPassword,
     },
+  });
+
+  const email =
+    user.role === Role.Vendor
+      ? vendorWelcomeEmail(user.name)
+      : customerWelcomeEmail(user.name);
+
+  await emailQueue.add('welcome-email', {
+    email: user.email,
+    ...email,
   });
   return createAuthentication(user);
 };
