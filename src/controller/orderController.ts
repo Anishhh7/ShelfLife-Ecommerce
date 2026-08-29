@@ -19,8 +19,9 @@ export const placeOrder = catchAsync(async (req, res, next) => {
 export const cancelOrder = catchAsync(async (req, res, next) => {
   const orderId = Number(req.params.id);
   const userId = Number(req.user?.id);
+  const { reason } = req.body;
 
-  const order = await orderService.canCancel(orderId, userId);
+  const order = await orderService.canCancel(orderId, userId, reason);
 
   sendResponse(
     res,
@@ -44,7 +45,7 @@ export const getTrackingOrder = catchAsync(async (req, res, next) => {
 
 export const updateAdminStatus = catchAsync(
   async (req, res, next) => {
-    const userId = Number(req.user?.id)
+    const userId = Number(req.user?.id);
     const itemId = Number(req.params.itemId);
     const { status } = req.body;
 
