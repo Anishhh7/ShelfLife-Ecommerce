@@ -146,9 +146,23 @@ export const restrictTo = (...roles: Role[]) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return next(new AppError('Permission denied', 403));
     }
-    if (req.user.role === Role.Vendor && req.user.approved === false) {
+    if (
+      req.user.role === Role.Vendor &&
+      req.user.approved === false
+    ) {
       return next(new AppError('You are not verified yet', 403));
     }
     next();
   };
 };
+
+export const forgotPassword = catchAsync(async (req, res) => {
+  const { email } = req.body;
+
+  const password = await authService.forgotPassword(email);
+
+  res.status(200).json({
+    status: 'Success',
+    message: 'OTP has been sent to your email address',
+  });
+});

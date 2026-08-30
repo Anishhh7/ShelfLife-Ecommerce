@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { Role } from '../generated/prisma/enums';
 import prisma from '../lib/prisma';
 import emailQueue from '../queue/email.queue';
@@ -10,6 +11,7 @@ import {
   hashToken,
   createRefreshFamily,
   getRefreshTokenExpiration,
+  createResetPasswordOtp,
 } from '../utils/authUtils';
 import {
   customerWelcomeEmail,
@@ -117,4 +119,35 @@ export const rotateRefreshToken = async (
     refreshToken,
     refreshTokenExpires,
   };
+};
+
+export const forgotPassword = async (email: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+  if (!user) {
+    throw new AppError('Invalid email', 404);
+  }
+
+  const { OTP, hashedOTP, passwordResetOTPExpires } =
+    createResetPasswordOtp();
+
+  await prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      passwordResetOTP: hashedOTP,
+      passwordResetOTPExpires,
+    },
+  });
+  const message = `Your password reset OTP is ${OTP}. It is valid for 10 minutes. If you didn't request this, please ignore this email.`;
+
+  await emailQueue.add('password-reset-otp', {
+    email: user.email,
+    subject: 'Reset OTP',
+    message,
+  });
 };
