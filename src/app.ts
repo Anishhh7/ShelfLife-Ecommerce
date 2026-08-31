@@ -1,33 +1,40 @@
+import type {
+  Application,
+  NextFunction,
+  Request,
+  Response,
+} from 'express';
 import express from 'express';
-import type { Application } from 'express';
-import type { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
 import morgan from 'morgan';
+import './config/redis';
+import { protect } from './controller/authController';
 import globalErrorHandler from './controller/errorController';
-import AppError from './utils/AppError';
-import authRouter from './Router/authRouter';
-import administrationRouter from './Router/administrationRouter';
+import { stripeWebhook } from './controller/paymentController';
+import './queue/email.worker';
 import addressRouter from './Router/addressRouter';
-import categoryRouter from './Router/categoryRouter';
-import productRouter from './Router/productRouter';
+import administrationRouter from './Router/administrationRouter';
+import authRouter from './Router/authRouter';
 import cartRouter from './Router/cartRouter';
+import categoryRouter from './Router/categoryRouter';
 import orderRouter from './Router/orderRouter';
+import paymentRouter from './Router/paymentRouter';
+import productRouter from './Router/productRouter';
 import reviewRouter from './Router/reviewRouter';
 import wishlistRouter from './Router/wishlistRouter';
-import './config/redis';
-import './queue/email.worker'
+import AppError from './utils/AppError';
 
 const app: Application = express();
 app.set('query parser', 'extended');
 
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    credentials: true,
-  })
+app.post(
+  '/api/v1/payments/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  stripeWebhook
 );
 
 app.use(express.json());
+
+app.use('/api/v1/payment', protect, paymentRouter);
 
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -42,6 +49,7 @@ app.use('/api/v1/carts', cartRouter);
 app.use('/api/v1/orders', orderRouter);
 app.use('/api/v1/reviews', reviewRouter);
 app.use('/api/v1/wishlists', wishlistRouter);
+app.use('/api/v1/payment', paymentRouter);
 
 app.all(
   '/{*path}',
