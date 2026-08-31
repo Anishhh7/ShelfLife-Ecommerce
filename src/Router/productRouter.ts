@@ -1,8 +1,9 @@
 import express from 'express';
+import upload from '../config/multer';
 import permission from '../config/permission';
-import { validate } from '../utils/validate';
 import * as AuthController from '../controller/authController';
 import * as ProductController from '../controller/productController';
+import { validate } from '../utils/validate';
 import * as ValidationProduct from '../validation/productValidation';
 import reviewRouter from './reviewRouter';
 
@@ -40,9 +41,23 @@ router
     ProductController.deleteProduct
   );
 
+router.post(
+  '/:productId/images',
+  AuthController.restrictTo(permission.product.uploadImages),
+  upload.array('images', 5),
+  ProductController.addProductImages
+);
+
+router.delete(
+  '/:productId/images/delete',
+  AuthController.restrictTo(permission.product.deleteImage),
+  ProductController.removeProductImages
+);
+
 router.get(
   '/vendors/myProducts/:productId',
   AuthController.restrictTo(permission.product.ReadAllProduct),
   ProductController.getVendorProductById
 );
+
 export default router;

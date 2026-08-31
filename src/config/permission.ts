@@ -31,6 +31,8 @@ export default {
     UpdateProduct: Role.Vendor,
     DeleteProduct: Role.Vendor,
     ReadAllProduct: Role.Vendor,
+    uploadImages: Role.Vendor,
+    deleteImage: Role.Vendor
   },
   cart: {
     CreateCart: Role.Customer,

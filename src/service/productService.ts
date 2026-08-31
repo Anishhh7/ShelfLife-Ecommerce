@@ -1,7 +1,10 @@
 import prisma from '../lib/prisma';
-import AppError from '../utils/AppError';
 import { productQuery } from '../query/productQuery';
-import type { Prisma } from '../generated/prisma/client';
+import AppError from '../utils/AppError';
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from '../utils/uploadToCloudinary';
 
 export const createProduct = async (
   vendorId: number,
@@ -235,4 +238,86 @@ export const getVendorProductById = async (
       category: true,
     },
   });
+};
+
+export const addProductImages = async (
+  productId: number,
+  userId: number,
+  files: Express.Multer.File[]
+) => {
+  if (!files || files.length === 0) {
+    throw new AppError('At least one image is required', 400);
+  }
+  const checkProduct = await prisma.product.findFirst({
+    where: {
+      id: productId,
+      vendorId: userId,
+    },
+    include: {
+      vendor: true,
+    },
+  });
+
+  if (!checkProduct) {
+    throw new AppError('Product not found', 404);
+  }
+  if (checkProduct.vendor.id !== userId) {
+    throw new AppError('Your are not authorized ', 403);
+  }
+
+  const uploadImage = await Promise.all(
+    files.map((file) =>
+      uploadToCloudinary(file, 'shelflife/New-Products')
+    )
+  );
+
+  const productImages = await prisma.productImage.createMany({
+    data: uploadImage.map((image) => ({
+      productId,
+      url: image.url,
+      publicId: image.publicId,
+    })),
+  });
+  return productImages;
+};
+
+export const removeProductImages = async (
+  productId: number,
+  userId: number,
+  imageId: number
+) => {
+  const checkProduct = await prisma.product.findFirst({
+    where: {
+      id: productId,
+      vendorId: userId,
+    },
+    include: {
+      vendor: true,
+    },
+  });
+
+  if (!checkProduct) {
+    throw new AppError('Product not found', 404);
+  }
+  if (checkProduct.vendor.id !== userId) {
+    throw new AppError('Your are not authorized ', 403);
+  }
+
+  const image = await prisma.productImage.findFirst({
+    where: {
+      id: imageId,
+      productId,
+    },
+  });
+  if (!image) {
+    throw new AppError('Image not found in this product', 404);
+  }
+  await deleteFromCloudinary(image.publicId!);
+
+  await prisma.productImage.delete({
+    where: {
+      id: image.id,
+    },
+  });
+  return image;
 };
