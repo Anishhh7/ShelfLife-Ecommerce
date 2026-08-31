@@ -1,17 +1,17 @@
-import AppError from '../utils/AppError';
-import prisma from '../lib/prisma';
 import {
   ItemStatus,
   PaymentMethod,
   Prisma,
 } from '../generated/prisma/client';
 import { logger } from '../lib/logger';
+import prisma from '../lib/prisma';
 import { orderQuery } from '../query/orderQuery';
+import emailQueue from '../queue/email.queue';
+import AppError from '../utils/AppError';
 import {
   orderPlacedEmail,
   vendorOrderReceivedEmail,
 } from '../utils/emailTemplates';
-import emailQueue from '../queue/email.queue';
 
 export const placeOrder = async (
   userId: number,
@@ -357,11 +357,15 @@ export const getOrderTracking = async (
     'Order tracking fetched successfully'
   );
 
-  return checkOrder.items.map((item) => ({
-    productName: item.productName,
-    currentStatus: item.itemStatus,
-    statusHistory: item.statusHistory,
-  }));
+  return {
+    paymentStatus: checkOrder.paymentStatus,
+    PaymentMethod: checkOrder.paymentMethod,
+    items: checkOrder.items.map((item) => ({
+      productName: item.productName,
+      currentStatus: item.itemStatus,
+      statusHistory: item.statusHistory,
+    })),
+  };
 };
 
 export const getAllMyOrders = async (
