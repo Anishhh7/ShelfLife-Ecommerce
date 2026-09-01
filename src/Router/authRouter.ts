@@ -1,7 +1,8 @@
-import express, { Router } from 'express';
+import { Router } from 'express';
+import upload from '../config/multer';
 import * as AuthController from '../controller/authController';
-import * as AuthValidation from '../validation/authValidation';
 import { validate } from '../utils/validate';
+import * as AuthValidation from '../validation/authValidation';
 
 const router = Router();
 
@@ -18,5 +19,13 @@ router.post(
 );
 
 router.post('/forgot-password', AuthController.forgotPassword);
+
+router.use(AuthController.protect);
+
+router.patch(
+  '/change-profile-image',
+  upload.single('image'),
+  AuthController.changeProfilePhoto
+);
 
 export default router;

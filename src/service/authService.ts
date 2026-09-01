@@ -1,22 +1,22 @@
-import bcrypt from 'bcryptjs';
 import { Role } from '../generated/prisma/enums';
 import prisma from '../lib/prisma';
 import emailQueue from '../queue/email.queue';
 import AppError from '../utils/AppError';
 import {
-  hashPassword,
   checkPassword,
+  createRefreshFamily,
+  createResetPasswordOtp,
+  getRefreshTokenExpiration,
+  hashPassword,
+  hashToken,
   signAccessToken,
   signRefreshToken,
-  hashToken,
-  createRefreshFamily,
-  getRefreshTokenExpiration,
-  createResetPasswordOtp,
 } from '../utils/authUtils';
 import {
   customerWelcomeEmail,
   vendorWelcomeEmail,
 } from '../utils/emailTemplates';
+import { changeCloudinaryImage } from '../utils/uploadToCloudinary';
 
 export const createAuthentication = async (user: any) => {
   const accessToken = signAccessToken(user.id);
@@ -149,5 +149,40 @@ export const forgotPassword = async (email: string) => {
     email: user.email,
     subject: 'Reset OTP',
     message,
+  });
+};
+
+export const changeUserProfile = async (
+  userId: number,
+  file: Express.Multer.File
+) => {
+  if (!file) {
+    throw new AppError('Please upload an image', 400);
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      id: userId,
+      role: Role.Customer || Role.Vendor,
+    },
+  });
+
+  if (!user) {
+    throw new AppError('User not found', 400);
+  }
+
+  const newImage = await changeCloudinaryImage(
+    user.profileImagePublicId,
+    file,
+    'shelflife/users'
+  );
+  return prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      profileImageUrl: newImage.url,
+      profileImagePublicId: newImage.publicId,
+    },
   });
 };

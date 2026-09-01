@@ -1,21 +1,15 @@
+import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import ms, { type StringValue } from 'ms';
-import crypto from 'crypto';
-import catchAsync from '../utils/catchAsync';
-import AppError from '../utils/AppError';
-import { type User } from '../generated/prisma/client';
-import prisma from '../lib/prisma';
-import { response, type CookieOptions } from 'express';
-import type { Request, Response, NextFunction } from 'express';
-import {
-  hashPassword,
-  checkPassword,
-  checkChangedPassword,
-  createResetPasswordOtp,
-} from '../utils/authUtils';
 import { Role } from '../generated/prisma/client';
-import { sanitizeUser } from '../utils/authUtils';
+import prisma from '../lib/prisma';
 import * as authService from '../service/authService';
+import AppError from '../utils/AppError';
+import {
+  checkChangedPassword,
+  sanitizeUser,
+} from '../utils/authUtils';
+import catchAsync from '../utils/catchAsync';
 
 const setAuthCookies = (
   res: Response,
@@ -164,5 +158,20 @@ export const forgotPassword = catchAsync(async (req, res) => {
   res.status(200).json({
     status: 'Success',
     message: 'OTP has been sent to your email address',
+  });
+});
+
+export const changeProfilePhoto = catchAsync(async (req, res) => {
+  const userId = Number(req.user?.id);
+
+  const profileImage = await authService.changeUserProfile(
+    userId,
+    req.file!
+  );
+
+  res.status(200).json({
+    status: 'success',
+    data: profileImage,
+    message: 'Profile photo changed successfully',
   });
 });
