@@ -25,6 +25,7 @@ export default {
     CreateCategory: Role.Admin,
     UpdateCategory: Role.Admin,
     DeleteCategory: Role.Admin,
+    CoverImage:Role.Admin
   },
   product: {
     CreateProduct: Role.Vendor,

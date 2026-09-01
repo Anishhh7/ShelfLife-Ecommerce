@@ -1,4 +1,5 @@
 import express from 'express';
+import upload from '../config/multer';
 import permission from '../config/permission';
 import * as AuthController from '../controller/authController';
 import * as CategoryController from '../controller/categoryController';
@@ -18,6 +19,13 @@ router.post(
   CategoryController.createCategory
 );
 
+router.patch(
+  '/:categoryId/cover-image',
+  AuthController.restrictTo(permission.category.CoverImage),
+  upload.single('image'),
+  CategoryController.changeCoverImage
+);
+
 router
   .route('/:categoryId')
   .patch(
@@ -31,4 +39,3 @@ router
   );
 
 export default router;
-     
