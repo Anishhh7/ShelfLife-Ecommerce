@@ -401,44 +401,32 @@ Administration functionality includes:
 
 # 📁 Project Structure
 
-```text
 ShelfLife-v2/
 │
 ├── src/
 │   │
-│   ├── common/
-│   │   ├── entities/
-│   │   ├── middlewares/
-│   │   ├── utils/
-│   │   └── ...
-│   │
 │   ├── config/
-│   │   ├── cloudinary/
-│   │   ├── database/
-│   │   ├── redis/
-│   │   └── ...
 │   │
-│   ├── modules/
-│   │   ├── users/
-│   │   ├── products/
-│   │   ├── categories/
-│   │   ├── carts/
-│   │   ├── orders/
-│   │   ├── payments/
-│   │   ├── reviews/
-│   │   ├── wishlist/
-│   │   ├── addresses/
-│   │   └── administration/
+│   ├── controller/
 │   │
 │   ├── queue/
 │   │   └── email.worker.ts
+│   │
+│   ├── router/
+│   │
+│   ├── service/
+│   │
+│   ├── utils/
+│   │
+│   ├── validation/
 │   │
 │   ├── app.ts
 │   └── server.ts
 │
 ├── prisma/
 │   ├── migrations/
-│   └── schema.prisma
+│   ├── schema.prisma
+│   └── seed.ts
 │
 ├── .env
 ├── .gitignore
@@ -446,11 +434,6 @@ ShelfLife-v2/
 ├── package-lock.json
 ├── tsconfig.json
 └── README.md
-```
-
-> The exact internal folder structure may vary as the project evolves.
-
----
 
 # 🗄️ Database
 
