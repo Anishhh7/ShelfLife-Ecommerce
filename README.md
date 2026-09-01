@@ -397,8 +397,8 @@ Administration functionality includes:
 * Pino Pretty
 * Morgan
 
----
 
+```text
 # 📁 Project Structure
 
 ShelfLife-v2/
@@ -497,8 +497,6 @@ Delivered
    ↓
 Customer Can Review Product
 ```
-
----
 
 # 🔐 Role Structure
 
