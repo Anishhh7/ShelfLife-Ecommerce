@@ -1,3 +1,4 @@
+import compression from 'compression';
 import type {
   Application,
   NextFunction,
@@ -5,6 +6,7 @@ import type {
   Response,
 } from 'express';
 import express from 'express';
+import helmet from 'helmet';
 import morgan from 'morgan';
 import './config/redis';
 import { protect } from './controller/authController';
@@ -25,6 +27,27 @@ import AppError from './utils/AppError';
 
 const app: Application = express();
 app.set('query parser', 'extended');
+
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        fontSrc: ["'self'", 'https:', 'data:'],
+        connectSrc: ["'self'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
+app.use(compression());
 
 app.post(
   '/api/v1/payments/stripe/webhook',
@@ -49,7 +72,6 @@ app.use('/api/v1/carts', cartRouter);
 app.use('/api/v1/orders', orderRouter);
 app.use('/api/v1/reviews', reviewRouter);
 app.use('/api/v1/wishlists', wishlistRouter);
-app.use('/api/v1/payment', paymentRouter);
 
 app.all(
   '/{*path}',
