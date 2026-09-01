@@ -26,7 +26,7 @@ export const checkChangedPassword = async (
   return false;
 };
 
-export const createResetPasswordOtp = async () => {
+export const createResetPasswordOtp =  () => {
   const OTP = Math.floor(100000 + Math.random() * 900000).toString();
 
   const hashedOTP = crypto

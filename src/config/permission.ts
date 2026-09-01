@@ -12,6 +12,7 @@ export default {
     ReadPendingVendors: Role.Admin,
     ReadAllCustomers: Role.Admin,
     ReadVendor: Role.Admin,
+    changeProfilePhoto: Role.Staff
   },
 
   address: {
@@ -25,12 +26,15 @@ export default {
     CreateCategory: Role.Admin,
     UpdateCategory: Role.Admin,
     DeleteCategory: Role.Admin,
+    CoverImage:Role.Admin
   },
   product: {
     CreateProduct: Role.Vendor,
     UpdateProduct: Role.Vendor,
     DeleteProduct: Role.Vendor,
     ReadAllProduct: Role.Vendor,
+    uploadImages: Role.Vendor,
+    deleteImage: Role.Vendor
   },
   cart: {
     CreateCart: Role.Customer,
@@ -50,4 +54,9 @@ export default {
     ReadVendorOrders: Role.Vendor,
     ReadAll: [Role.Admin, Role.Staff],
   },
+  review: {
+    CreateReview: Role.Customer,
+    DeleteReview: Role.Admin,
+    GetAllMyReview: Role.Customer,
+  }
 };

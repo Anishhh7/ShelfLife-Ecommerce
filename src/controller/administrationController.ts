@@ -1,11 +1,11 @@
-import { Role, type User } from '../generated/prisma/client';
-import catchAsync from '../utils/catchAsync';
-import AppError from '../utils/AppError';
-import { sendPage, sendResponse } from '../utils/sendResponse';
-import prisma from '../lib/prisma';
-import { hashPassword, sanitizeUser } from '../utils/authUtils';
-import * as administrationService from '../service/administrationService';
+import { Role } from '../generated/prisma/client';
 import { logger } from '../lib/logger';
+import prisma from '../lib/prisma';
+import * as administrationService from '../service/administrationService';
+import AppError from '../utils/AppError';
+import { hashPassword, sanitizeUser } from '../utils/authUtils';
+import catchAsync from '../utils/catchAsync';
+import { sendPage, sendResponse } from '../utils/sendResponse';
 
 export const createStaff = catchAsync(async (req, res, next) => {
   const { password, passwordConfirm, ...userData } = req.body;
@@ -16,7 +16,7 @@ export const createStaff = catchAsync(async (req, res, next) => {
     data: {
       ...userData,
       password: hashedPassword,
-      role: Role.Staff
+      role: Role.Staff,
     },
   });
 
@@ -69,7 +69,6 @@ export const updateStaff = catchAsync(async (req, res, next) => {
 
   sendResponse(res, 200, staff, 'Staff Updated Successfully');
 });
-
 
 export const getPendingVendors = catchAsync(
   async (req, res, next) => {
@@ -140,3 +139,19 @@ const makeDeleteUser = (role: Role) =>
 export const deleteCustomers = makeDeleteUser('Customer');
 export const deleteVendors = makeDeleteUser('Vendor');
 export const deleteStaff = makeDeleteUser('Staff');
+
+export const changeProfilePhoto = catchAsync(async (req, res) => {
+  const staffId = Number(req.user?.id);
+
+  const profileImage = await administrationService.changeProfilePhoto(
+    staffId,
+    req.file!
+  );
+
+  sendResponse(
+    res,
+    200,
+    profileImage,
+    'Profile photo has changed successfully'
+  );
+});

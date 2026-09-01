@@ -1,8 +1,6 @@
+import * as categoryService from '../service/categoryService';
 import catchAsync from '../utils/catchAsync';
 import { sendPage, sendResponse } from '../utils/sendResponse';
-import prisma from '../lib/prisma';
-import * as categoryService from '../service/categoryService';
-import AppError from '../utils/AppError';
 
 export const createCategory = catchAsync(async (req, res) => {
   const category = await categoryService.createCategory(req.body);
@@ -46,4 +44,20 @@ export const getCategoryById = catchAsync(async (req, res, next) => {
   );
 
   sendResponse(res, 200, category);
+});
+
+export const changeCoverImage = catchAsync(async (req, res, next) => {
+  const categoryId = Number(req.params.categoryId);
+
+  const image = await categoryService.changeCoverImage(
+    categoryId,
+    req.file!
+  );
+
+  sendResponse(
+    res,
+    200,
+    image,
+    'Category cover image updated successfully'
+  );
 });

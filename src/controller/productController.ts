@@ -1,6 +1,6 @@
-import catchAsync from '../utils/catchAsync';
-import {sendResponse,  sendPage } from '../utils/sendResponse';
 import * as productService from '../service/productService';
+import catchAsync from '../utils/catchAsync';
+import { sendPage, sendResponse } from '../utils/sendResponse';
 
 export const createProduct = catchAsync(async (req, res, next) => {
   const vendorId = Number(req.user?.id);
@@ -35,11 +35,9 @@ export const deleteProduct = catchAsync(async (req, res, next) => {
 });
 
 export const getAllActiveProducts = catchAsync(async (req, res) => {
-  const page = await productService.getAllActiveProducts(
-    req.query
-  );
+  const page = await productService.getAllActiveProducts(req.query);
 
-sendPage(res, 200, page, 'Products fetched Successfully')
+  sendPage(res, 200, page, 'Products fetched Successfully');
 });
 
 export const getAllVendorProduct = catchAsync(async (req, res) => {
@@ -75,4 +73,38 @@ export const getVendorProductById = catchAsync(async (req, res) => {
   );
 
   sendResponse(res, 200, product);
+});
+
+export const addProductImages = catchAsync(async (req, res) => {
+  const productId = Number(req.params.productId);
+  const userId = Number(req.user?.id);
+
+  const files = req.files as Express.Multer.File[];
+
+  const images = await productService.addProductImages(
+    productId,
+    userId,
+    files
+  );
+
+  sendResponse(
+    res,
+    200,
+    images,
+    'Product Images uploaded successfully'
+  );
+});
+
+export const removeProductImages = catchAsync(async (req, res) => {
+  const productId = Number(req.params.productId);
+  const userId = Number(req.user?.id);
+  const { imageId } = req.body;
+
+  const image = await productService.removeProductImages(
+    productId,
+    userId,
+    imageId
+  );
+
+  sendResponse(res, 204, null);
 });

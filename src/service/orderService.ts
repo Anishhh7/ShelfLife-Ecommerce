@@ -1,12 +1,17 @@
-import AppError from '../utils/AppError';
-import prisma from '../lib/prisma';
 import {
   ItemStatus,
   PaymentMethod,
   Prisma,
 } from '../generated/prisma/client';
 import { logger } from '../lib/logger';
+import prisma from '../lib/prisma';
 import { orderQuery } from '../query/orderQuery';
+import emailQueue from '../queue/email.queue';
+import AppError from '../utils/AppError';
+import {
+  orderPlacedEmail,
+  vendorOrderReceivedEmail,
+} from '../utils/emailTemplates';
 
 export const placeOrder = async (
   userId: number,
@@ -96,6 +101,21 @@ export const placeOrder = async (
 
   const totalAmount = lineTotal.plus(taxTotal);
 
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      name: true,
+      email: true,
+      storeName: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.create({
       data: {
@@ -164,22 +184,74 @@ export const placeOrder = async (
       },
       'Order created successfully'
     );
+    const customerEmail = orderPlacedEmail(
+      user.name,
+      order.orderNumber,
+      order.totalAmount.toString()
+    );
+
+    await emailQueue.add('order-placed-email', {
+      email: user.email,
+      ...customerEmail,
+    });
+
+    const vendors = new Map(
+      selectedItems.map((item) => [
+        item.product.vendorId,
+        item.product.vendor,
+      ])
+    );
+
+    await Promise.all(
+      Array.from(vendors.values()).map((vendor) =>
+        emailQueue.add('vendor-order-received-email', {
+          email: vendor.email,
+          ...vendorOrderReceivedEmail(
+            vendor.name,
+            vendor.storeName!,
+            order.orderNumber
+          ),
+        })
+      )
+    );
+
     return order;
   });
 };
 
-export const canCancel = async (orderId: number, userId: number) => {
-  const checkOrder = await prisma.order.findFirst({
+export const canCancel = async (
+  orderId: number,
+  userId: number,
+  reason?: string
+) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      name: true,
+      email: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  const checkOrder = await prisma.order.findUnique({
     where: {
       id: orderId,
-      userId,
     },
     include: {
       items: {
         include: {
           product: {
             include: {
-              vendor: true,
+              vendor: {
+                include: {
+                  products: true,
+                },
+              },
             },
           },
         },
@@ -214,6 +286,7 @@ export const canCancel = async (orderId: number, userId: number) => {
           create: {
             status: 'Cancelled',
             updatedBy: userId,
+            reason,
           },
         },
       },
@@ -244,6 +317,15 @@ export const canCancel = async (orderId: number, userId: number) => {
       'Order not found for cancellation'
     );
 
+    const cancelledEmail = orderPlacedEmail(
+      user.name,
+      order.orderNumber,
+      reason!
+    );
+    await emailQueue.add('order-cancelled-email', {
+      email: user.email,
+      ...cancelledEmail,
+    });
     return order;
   });
 };
@@ -275,11 +357,15 @@ export const getOrderTracking = async (
     'Order tracking fetched successfully'
   );
 
-  return checkOrder.items.map((item) => ({
-    productName: item.productName,
-    currentStatus: item.itemStatus,
-    statusHistory: item.statusHistory,
-  }));
+  return {
+    paymentStatus: checkOrder.paymentStatus,
+    PaymentMethod: checkOrder.paymentMethod,
+    items: checkOrder.items.map((item) => ({
+      productName: item.productName,
+      currentStatus: item.itemStatus,
+      statusHistory: item.statusHistory,
+    })),
+  };
 };
 
 export const getAllMyOrders = async (
@@ -401,7 +487,7 @@ export const updateAdminItemStatus = async (
           fromStatus: orderItem.itemStatus,
           reason:
             status === ItemStatus.Cancelled ? (reason ?? null) : null,
-          updatedById: userId
+          updatedById: userId,
         },
       },
     },
@@ -412,11 +498,11 @@ export const updateAdminItemStatus = async (
             select: {
               id: true,
               name: true,
-              role:true
-            }
-          }
-        }
-      }
-    }
+              role: true,
+            },
+          },
+        },
+      },
+    },
   });
 };

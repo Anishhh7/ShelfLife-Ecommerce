@@ -1,7 +1,8 @@
+import { Role } from '../generated/prisma/enums';
 import prisma from '../lib/prisma';
-import AppError from '../utils/AppError';
 import { userQuery } from '../query/userQuery';
-import type { Role } from '../generated/prisma/enums';
+import AppError from '../utils/AppError';
+import { changeCloudinaryImage } from '../utils/uploadToCloudinary';
 
 export const approvedVendors = async (vendorId: number) => {
   const vendor = await prisma.user.findUnique({
@@ -68,8 +69,44 @@ export const deleteUserByRole = async (role: Role, ids: number[]) => {
     }
 
     const validIds = users.map((user) => user.id);
-    await tx.user.deleteMany({ where: { id: { in: validIds }, role } })
-    
-    return validIds
+    await tx.user.deleteMany({
+      where: { id: { in: validIds }, role },
+    });
+
+    return validIds;
+  });
+};
+export const changeProfilePhoto = async (
+  staffId: number,
+  file: Express.Multer.File
+) => {
+  if (!file) {
+    throw new AppError('Profile photo is required', 400);
+  }
+
+  const staff = await prisma.user.findUnique({
+    where: {
+      id: staffId,
+    },
+  });
+
+  if (staff?.role !== Role.Staff) {
+    throw new AppError('Staff not found', 404);
+  }
+
+  const newImage = await changeCloudinaryImage(
+    staff.profileImagePublicId,
+    file,
+    'shelflife/profiles'
+  );
+
+  return prisma.user.update({
+    where: {
+      id: staffId,
+    },
+    data: {
+      profilePhotoUrl: newImage.url,
+      profilePhotoPublicId: newImage.publicId,
+    },
   });
 };
