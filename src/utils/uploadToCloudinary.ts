@@ -8,7 +8,7 @@ interface cloudinaryUploadResult {
 
 export const uploadToCloudinary = (
   file: Express.Multer.File,
-  folderName = 'Shelflife'
+  folderName = 'string'
 ): Promise<cloudinaryUploadResult> => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -46,9 +46,13 @@ export const deleteFromCloudinary = async (publicId: string) => {
 export const changeCloudinaryImage = async (
   oldPublicId: string | null,
   newFile: Express.Multer.File,
-  folderName: 'shelflife'
+  folderName: string
 ): Promise<cloudinaryUploadResult> => {
-  const newImage = await uploadToCloudinary(newFile, folderName);
+  const newImage = await uploadToCloudinary(
+    newFile,
+    folderName
+  );
+
   if (oldPublicId) {
     await deleteFromCloudinary(oldPublicId);
   }
