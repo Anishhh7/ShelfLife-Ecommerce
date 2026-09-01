@@ -1,4 +1,4 @@
-# ShelfLife v2
+# ShelfLife Ecommerce Backend
 
 A production-oriented **multi-vendor ecommerce backend API** built with **Node.js, Express, TypeScript, PostgreSQL, and Prisma**.
 
