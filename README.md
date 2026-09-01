@@ -1,5 +1,7 @@
 # ShelfLife Ecommerce Backend
 
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white) ![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat&logo=prisma&logoColor=white) ![Stripe](https://img.shields.io/badge/Stripe-635BFF?style=flat&logo=stripe&logoColor=white) ![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat&logo=redis&logoColor=white)
+
 A production-oriented **multi-vendor ecommerce backend API** built with **Node.js, Express, TypeScript, PostgreSQL, and Prisma**.
 
 ShelfLife supports customers, vendors, staff, and administrators with features including authentication, product management, cart and orders, payments, reviews, wishlist, image management, order tracking, email processing, and role-based access control.
