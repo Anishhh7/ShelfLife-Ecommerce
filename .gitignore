@@ -8,5 +8,7 @@ prisma/generated/
 .windsurf/
 skills-lock.json
 .vscode/
+dist/
+
 
 
