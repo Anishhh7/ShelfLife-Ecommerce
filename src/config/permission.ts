@@ -12,6 +12,7 @@ export default {
     ReadPendingVendors: Role.Admin,
     ReadAllCustomers: Role.Admin,
     ReadVendor: Role.Admin,
+    changeProfilePhoto: Role.Staff
   },
 
   address: {

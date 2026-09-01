@@ -1,9 +1,10 @@
-import { validate } from '../utils/validate';
-import * as AdministrationValidation from '../validation/administrationValidation';
-import * as AuthController from '../controller/authController';
+import { Router } from 'express';
+import upload from '../config/multer';
 import permission from '../config/permission';
 import * as AdministrationController from '../controller/administrationController';
-import express, { Router } from 'express';
+import * as AuthController from '../controller/authController';
+import { validate } from '../utils/validate';
+import * as AdministrationValidation from '../validation/administrationValidation';
 
 const router = Router();
 
@@ -72,6 +73,15 @@ router.delete(
   AdministrationController.deleteStaff
 );
 
+router.patch(
+  '/change-profile-image',
+  AuthController.restrictTo(
+    permission.administration.changeProfilePhoto
+  ),
+  upload.single('image'),
+  AdministrationController.changeProfilePhoto
+);
+
 router
   .route('/:id')
   .get(
@@ -82,6 +92,6 @@ router
     AuthController.restrictTo(permission.administration.UpdateStaff),
     validate(AdministrationValidation.updateStaffSchema),
     AdministrationController.updateStaff
-  )
+  );
 
 export default router;
